@@ -63,8 +63,9 @@ function PricingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [openService, setOpenService] = useState(null);
   const [heroSlideIndex, setHeroSlideIndex] = useState(0);
-  const [heroFrameReady, setHeroFrameReady] = useState(false);
+  const [readyHeroSources, setReadyHeroSources] = useState({});
   const heroSlideTimer = useRef(null);
+  const heroVideoRefs = useRef([]);
 
   useEffect(() => {
     const isCmsPreview = new URLSearchParams(window.location.search).has('cmsPreview');
@@ -181,49 +182,80 @@ const serviceInfo = (service) => {
   const heroAccent = hero.accent || '';
   const heroAccentIndex = heroAccent ? heroTitle.toLowerCase().lastIndexOf(heroAccent.toLowerCase()) : -1;
   const heroTitleLead = heroAccentIndex >= 0 ? heroTitle.slice(0, heroAccentIndex).trim() : heroTitle;
-  const heroBackgroundSlides = (hero.backgroundSlides || []).map((url) => String(url).trim()).filter(Boolean);
+  const heroBackgroundSlides = [];
+  const seenHeroSlides = new Set();
+  [...(hero.backgroundSlides || []), ...(hero.backgroundVideos || [])].forEach((url) => {
+    const value = String(url || '').trim();
+    if (!value) return;
+    const driveId = value.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:[^#]*&)?id=)([^/?&#]+)/i)?.[1];
+    const key = (driveId || value).toLowerCase();
+    if (seenHeroSlides.has(key)) return;
+    seenHeroSlides.add(key);
+    heroBackgroundSlides.push(value);
+  });
   const heroBackgroundKey = heroBackgroundSlides.join('\n');
 
   useEffect(() => {
     setHeroSlideIndex(0);
   }, [heroBackgroundKey]);
 
-  useEffect(() => {
-    setHeroFrameReady(false);
-  }, [heroBackgroundKey, heroSlideIndex]);
-
-  useEffect(() => {
-    if (heroBackgroundSlides.length < 2) return undefined;
-    const url = heroBackgroundSlides[heroSlideIndex % heroBackgroundSlides.length];
-    const isDirectFile = !/drive\.google\.com/i.test(url);
-    if (isDirectFile) return undefined;
-    heroSlideTimer.current = window.setTimeout(() => {
-      setHeroSlideIndex((current) => current + 1);
-    }, 12000);
-    return () => window.clearTimeout(heroSlideTimer.current);
-  }, [heroBackgroundKey, heroSlideIndex]);
-
   const getHeroVideoSource = (videoUrl = '') => {
     const driveFileId = videoUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:[^#]*&)?id=)([^/?&#]+)/i)?.[1];
     if (driveFileId) {
-      return {
-        type: 'drive',
-        url: `https://drive.google.com/file/d/${driveFileId}/preview?autoplay=1&mute=1`,
-        poster: `https://lh3.googleusercontent.com/d/${driveFileId}=w1600`,
-      };
+      return { type: 'file', url: `${API_BASE_URL}/uploads/hero/${driveFileId}.mp4`, local: true };
     }
-    return { type: 'file', url: videoUrl, poster: '' };
+    return { type: 'file', url: videoUrl, local: false };
   };
+
+  useEffect(() => {
+    let stopped = false;
+    const check = async () => {
+      const next = {};
+      await Promise.all(heroBackgroundSlides.map(async (url) => {
+        const source = getHeroVideoSource(url);
+        if (!source.local) {
+          next[url] = true;
+          return;
+        }
+        try {
+          const response = await fetch(source.url, { method: 'HEAD' });
+          next[url] = response.ok;
+        } catch {
+          next[url] = false;
+        }
+      }));
+      if (!stopped) setReadyHeroSources(next);
+    };
+    check();
+    const timer = window.setInterval(check, 4000);
+    return () => {
+      stopped = true;
+      window.clearInterval(timer);
+    };
+  }, [heroBackgroundKey]);
+
+  const playableHeroSlides = heroBackgroundSlides.filter((url) => {
+    const source = getHeroVideoSource(url);
+    return !source.local || readyHeroSources[url];
+  });
+
+  useEffect(() => {
+    const activeIndex = playableHeroSlides.length ? heroSlideIndex % playableHeroSlides.length : 0;
+    heroVideoRefs.current.forEach((video, index) => {
+      if (!video) return;
+      if (index === activeIndex) {
+        if (video.ended) video.currentTime = 0;
+        const play = video.play();
+        if (play && typeof play.catch === 'function') play.catch(() => {});
+      } else {
+        video.pause();
+      }
+    });
+  }, [heroSlideIndex, heroBackgroundKey, readyHeroSources]);
 
   const advanceHeroVideo = () => {
     window.clearTimeout(heroSlideTimer.current);
-    setHeroSlideIndex((current) => (current + 1) % heroBackgroundSlides.length);
-  };
-
-  const scheduleHeroVideoEnd = (duration) => {
-    if (!Number.isFinite(duration) || duration <= 0 || heroBackgroundSlides.length < 2) return;
-    window.clearTimeout(heroSlideTimer.current);
-    heroSlideTimer.current = window.setTimeout(advanceHeroVideo, duration * 1000);
+    setHeroSlideIndex((current) => current + 1);
   };
 
   const skipFailedHeroVideo = () => {
@@ -231,13 +263,7 @@ const serviceInfo = (service) => {
     heroSlideTimer.current = window.setTimeout(advanceHeroVideo, 4000);
   };
 
-  const currentHeroVideo = heroBackgroundSlides.length
-    ? getHeroVideoSource(heroBackgroundSlides[heroSlideIndex % heroBackgroundSlides.length])
-    : null;
-  const heroVideoStyle = {
-    opacity: Math.min(1, Math.max(0, Number(hero.backgroundOpacity ?? 1))),
-    '--hero-video-opacity': Math.min(1, Math.max(0, Number(hero.backgroundOpacity ?? 1))),
-  };
+  const heroVideoOpacity = Math.min(1, Math.max(0, Number(hero.backgroundOpacity ?? 1)));
 
   const visitSource = () => {
     const params = new URLSearchParams(window.location.search);
@@ -445,41 +471,29 @@ const serviceInfo = (service) => {
       </nav>
 
       <header className="hero hero-slideshow-background">
-        <div className="hero-bg-slides" aria-hidden="true">
-          {currentHeroVideo?.poster && (
-            <img className="hero-bg-poster" src={currentHeroVideo.poster} alt="" />
-          )}
-          {currentHeroVideo?.type === 'drive' ? (
-            <div className="hero-bg-frame-mask">
-              <iframe
-                className="hero-bg-frame"
-                key={`${heroSlideIndex}-${currentHeroVideo.url}`}
-                src={currentHeroVideo.url}
-                title="Hero background video"
-                allow="autoplay; encrypted-media"
-                tabIndex={-1}
-                onLoad={() => setHeroFrameReady(true)}
-                style={{ ...heroVideoStyle, opacity: heroFrameReady ? heroVideoStyle.opacity : 0 }}
+        <div className="hero-bg-slides" aria-hidden="true" style={{ '--hero-video-opacity': heroVideoOpacity }}>
+          {playableHeroSlides.map((url, index) => {
+            const source = getHeroVideoSource(url);
+            const active = index === heroSlideIndex % playableHeroSlides.length;
+            return (
+              <video
+                className={`hero-bg-video${active ? ' is-active' : ''}`}
+                key={source.url}
+                ref={(node) => { heroVideoRefs.current[index] = node; }}
+                src={source.url}
+                autoPlay={active}
+                muted
+                playsInline
+                preload="auto"
+                controls={false}
+                controlsList="nodownload nofullscreen noremoteplayback"
+                disablePictureInPicture
+                loop={playableHeroSlides.length === 1}
+                onEnded={playableHeroSlides.length > 1 ? advanceHeroVideo : undefined}
+                onError={playableHeroSlides.length > 1 ? skipFailedHeroVideo : undefined}
               />
-            </div>
-          ) : currentHeroVideo?.url ? (
-            <video
-              className="hero-bg-video"
-              key={`${heroSlideIndex}-${currentHeroVideo.url}`}
-              src={currentHeroVideo.url}
-              autoPlay
-              muted
-              playsInline
-              controls={false}
-              controlsList="nodownload nofullscreen noremoteplayback"
-              disablePictureInPicture
-              loop={heroBackgroundSlides.length === 1}
-              onLoadedMetadata={(event) => scheduleHeroVideoEnd(event.currentTarget.duration)}
-              onEnded={heroBackgroundSlides.length > 1 ? advanceHeroVideo : undefined}
-              onError={heroBackgroundSlides.length > 1 ? skipFailedHeroVideo : undefined}
-              style={heroVideoStyle}
-            />
-          ) : null}
+            );
+          })}
         </div>
         <div className="hero-bg-shade" aria-hidden="true" />
         <div className="wrap hero-grid">
