@@ -61,6 +61,7 @@ function PricingPage() {
   const [formStatus, setFormStatus] = useState('');
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [openService, setOpenService] = useState(null);
   const [heroSlideIndex, setHeroSlideIndex] = useState(0);
   const heroSlideTimer = useRef(null);
 
@@ -129,6 +130,50 @@ function PricingPage() {
     : <svg className="brand-mark" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="var(--red)"/><path d="M22 62 L34 40 L44 58 L54 38" stroke="var(--yellow)" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" fill="none"/><path d="M58 66 Q62 40 78 24" stroke="#0A0A0A" strokeWidth="7" strokeLinecap="round" fill="none"/><circle cx="80" cy="20" r="3.4" fill="#0A0A0A"/></svg>);
   const navItems = header.navItems || defaultSettings.header.navItems;
   const services = blocks.services || defaultSettings.contentBlocks.services;
+const serviceDetailsByTitle = {
+  'AI Video Generation': {
+    details: 'We turn a product, offer, or brief into a finished video ad without a crew or studio day. You get a concept, generated scenes, voiceover, and an edit cut for the platforms you actually run.',
+    includes: ['Concept and script from your brief', 'AI-generated product and lifestyle scenes', 'Voiceover, captions, and music', 'Revisions until the cut is ready to run'],
+  },
+  'Scroll-Stop Hooks': {
+    details: 'Most ads lose the viewer before the product appears. We write and cut several openings so the first second earns the next one, then test which hook holds attention.',
+    includes: ['Multiple hook options per ad', 'First-frame thumbnails that match the cut', 'On-screen text timed to the voiceover', 'Variants you can A/B in Meta or YouTube'],
+  },
+  'Multi-Format Delivery': {
+    details: 'One story rarely fits every placement. We recut the same campaign for Reels, Stories, Shorts, and in-feed ads so the framing, length, and caption fit each surface.',
+    includes: ['9:16, 1:1, and 16:9 exports', 'Safe-zone captions for Reels and Stories', 'Lengths for 6s, 15s, and 30s placements', 'Files named and sized for ad upload'],
+  },
+  'Conversion Optimized': {
+    details: 'Looking good is not the brief. Each frame is built around an offer, a proof point, and a next step, so the ad can be measured against clicks, leads, or purchases.',
+    includes: ['Offer and CTA written into the script', 'Proof points from your product or reviews', 'End cards with a clear next step', 'Notes on what to test next'],
+  },
+  'Scroll-Stop Visuals': {
+    details: 'Short-form video built for the first second of a feed. We design the opening frame, the motion, and the line of text so someone scrolling actually stops.',
+    includes: ['Thumb-stopping opening frame', 'Vertical cut for Reels and Shorts', 'On-screen hook in the first second', 'A version you can run as an ad'],
+  },
+  'Product Commercials': {
+    details: 'Studio-style product films without booking a studio. We build hero shots, pack close-ups, and a simple story around the product you already sell.',
+    includes: ['Hero and detail shots of the product', 'Lighting and background matched to the brand', '15s and 30s commercial cuts', 'Clean exports for site and paid social'],
+  },
+  'Full Advertising': {
+    details: 'Creative and media thinking in one pass. We pair the film with the campaign it is meant to run in, including the hook, the audience, and the placement.',
+    includes: ['Campaign concept, not just a clip', 'Meta and Instagram cutdowns', 'Primary text and headline suggestions', 'A launch-ready file set'],
+  },
+  'Ad Variant Testing': {
+    details: 'One ad is a guess. We produce several hooks and cuts from the same brief so you can see which opening, offer, or length actually wins.',
+    includes: ['3 or more hook variants', 'Same offer, different openings', 'Cuts labeled for your ad account', 'A short note on what each variant tests'],
+  },
+};
+
+const serviceInfo = (service) => {
+  const fallback = serviceDetailsByTitle[service.title] || {};
+  const savedIncludes = (service.includes || []).map((item) => String(item).trim()).filter(Boolean);
+  return {
+    ...service,
+    details: service.details || fallback.details || service.description,
+    includes: savedIncludes.length ? savedIncludes : (fallback.includes || []),
+  };
+};
   const workVideos = blocks.workVideos || defaultSettings.contentBlocks.workVideos;
   const pricingPlans = blocks.pricingPlans || defaultSettings.contentBlocks.pricingPlans;
   const heroTitle = hero.title || '';
@@ -202,6 +247,19 @@ function PricingPage() {
       source: visitSource(),
     }).catch(() => {});
   };
+
+  useEffect(() => {
+    if (!openService) return undefined;
+    const onKey = (event) => {
+      if (event.key === 'Escape') setOpenService(null);
+    };
+    document.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
+  }, [openService]);
 
   useEffect(() => {
     if (settings.seo?.metaTitle) document.title = settings.seo.metaTitle;
@@ -320,7 +378,7 @@ function PricingPage() {
         .marquee{background:var(--black);border-top:1px solid rgba(251,250,247,0.12);border-bottom:1px solid rgba(251,250,247,0.12);padding:22px 0;overflow:hidden;white-space:nowrap;} .marquee-track{display:inline-block;animation:scroll 28s linear infinite;font-family:'Archivo Black',sans-serif;font-size:15px;letter-spacing:0.04em;color:rgba(251,250,247,0.35);} .marquee-track span{margin:0 30px;} .marquee-track b{color:var(--yellow);} @keyframes scroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
         .section{padding:110px 0;} .kicker{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--red);margin-bottom:14px;} .kicker.on-dark{color:var(--yellow);} .kicker::before{content:"";width:20px;height:2px;background:currentColor;display:inline-block;} .section-title{font-size:clamp(28px,4.2vw,46px);line-height:1.06;} .section-title.dark{color:var(--black);} .section-desc{margin-top:16px;font-size:15.5px;line-height:1.7;color:rgba(251,250,247,0.62);} .section-desc.dark{color:rgba(10,10,10,0.6);}
         .tiles{background:var(--black);} .tiles-grid{display:grid;grid-template-columns:0.85fr 1.5fr;gap:36px;align-items:center;} @media(max-width:900px){.tiles-grid{grid-template-columns:1fr;}} .tiles-copy h2{font-size:clamp(28px,4.6vw,42px);line-height:1.05;} .tiles-copy h2 .accent{color:var(--yellow);} .tiles-copy p{margin-top:16px;font-size:15px;line-height:1.65;color:rgba(251,250,247,0.6);max-width:340px;} .tiles-link{display:inline-flex;align-items:center;gap:8px;margin-top:24px;font-weight:700;font-size:14px;color:var(--red);} .tile-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;} @media(max-width:640px){.tile-row{grid-template-columns:1fr;}} .tile{position:relative;border-radius:16px;overflow:hidden;aspect-ratio:3/4;border:1px solid rgba(251,250,247,0.12);background:#000;} .tile iframe{position:absolute;inset:0;width:100%;height:100%;border:0;} .tile-label{position:absolute;left:0;right:0;bottom:0;z-index:3;background:var(--yellow);color:var(--black);padding:12px 14px;display:flex;align-items:center;gap:10px;pointer-events:none;} .tile-label .dot{width:26px;height:26px;border-radius:50%;background:var(--black);color:var(--yellow);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;} .tile-label .txt b{display:block;font-size:12.5px;font-weight:800;} .tile-label .txt span{display:block;font-size:10.5px;opacity:0.75;}
-        .services{background:var(--paper);color:var(--black);} .services .section-desc{max-width:440px;} .services-head{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:20px;margin-bottom:52px;} .service-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(10,10,10,0.1);border:1px solid rgba(10,10,10,0.1);} @media(max-width:960px){.service-grid{grid-template-columns:repeat(2,1fr);}} @media(max-width:560px){.service-grid{grid-template-columns:1fr;}} .service-card{background:var(--paper);padding:36px 28px;transition:background .3s ease,color .3s ease;display:flex;flex-direction:column;gap:16px;min-height:230px;} .service-card:hover{background:var(--black);} .service-card:hover h3,.service-card:hover p{color:var(--white);} .service-card:hover .service-icon{background:var(--yellow);} .service-card:hover .learn{color:var(--yellow);} .service-icon{width:44px;height:44px;border-radius:10px;background:var(--red);display:flex;align-items:center;justify-content:center;transition:background .3s ease;} .service-card h3{font-size:17.5px;font-weight:800;transition:color .3s ease;} .service-card p{font-size:13.5px;line-height:1.6;color:rgba(10,10,10,0.6);transition:color .3s ease;} .learn{margin-top:auto;font-size:12.5px;font-weight:700;color:var(--red);display:inline-flex;align-items:center;gap:6px;transition:color .3s ease;}
+        .services{background:var(--paper);color:var(--black);} .services .section-desc{max-width:440px;} .services-head{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:20px;margin-bottom:52px;} .service-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(10,10,10,0.1);border:1px solid rgba(10,10,10,0.1);} @media(max-width:960px){.service-grid{grid-template-columns:repeat(2,1fr);}} @media(max-width:560px){.service-grid{grid-template-columns:1fr;}} .service-card{background:var(--paper);padding:36px 28px;transition:background .3s ease,color .3s ease;display:flex;flex-direction:column;gap:16px;min-height:230px;} .service-card:hover{background:var(--black);} .service-card:hover h3,.service-card:hover p{color:var(--white);} .service-card:hover .service-icon{background:var(--yellow);} .service-card:hover .learn{color:var(--yellow);} .service-icon{width:44px;height:44px;border-radius:10px;background:var(--red);display:flex;align-items:center;justify-content:center;transition:background .3s ease;} .service-card h3{font-size:17.5px;font-weight:800;transition:color .3s ease;} .service-card p{font-size:13.5px;line-height:1.6;color:rgba(10,10,10,0.6);transition:color .3s ease;} .learn{margin-top:auto;font-size:12.5px;font-weight:700;color:var(--red);display:inline-flex;align-items:center;gap:6px;transition:color .3s ease;background:none;border:0;padding:0;cursor:pointer;text-align:left;font-family:inherit;} .service-modal{position:fixed;inset:0;z-index:200;background:rgba(10,10,10,0.72);display:grid;place-items:center;padding:24px;} .service-modal-card{width:min(640px,100%);max-height:min(86vh,760px);overflow:auto;background:var(--paper);color:var(--black);border-radius:22px;padding:32px 28px;position:relative;} .service-modal-close{position:absolute;top:16px;right:16px;border:0;background:transparent;font-weight:800;cursor:pointer;font-family:inherit;} .service-modal-card h2{font-size:clamp(28px,4vw,42px);line-height:1.05;margin:8px 48px 16px 0;} .service-modal-card p{font-size:16px;line-height:1.65;color:rgba(10,10,10,0.72);} .service-modal-card ul{margin:22px 0 0;padding:0;list-style:none;display:grid;gap:10px;} .service-modal-card li{display:flex;gap:10px;font-weight:650;font-size:14.5px;} .service-modal-card li::before{content:"✓";color:var(--red);font-weight:800;} .service-modal-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px;} .service-modal-primary,.service-modal-secondary{border-radius:100px;padding:13px 22px;font-weight:800;cursor:pointer;font-family:inherit;} .service-modal-primary{background:var(--red);color:var(--white);border:0;} .service-modal-secondary{background:transparent;border:1.5px solid rgba(10,10,10,0.2);}
         .work{background:var(--black);} .work-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;} @media(max-width:900px){.work-grid{grid-template-columns:repeat(2,1fr);}} @media(max-width:600px){.work-grid{grid-template-columns:1fr;}} .work-card{border-radius:16px;overflow:hidden;border:1px solid rgba(251,250,247,0.12);background:#151515;transition:transform .35s ease,border-color .3s ease,box-shadow .3s ease;} .work-card:hover{transform:translateY(-6px);border-color:var(--yellow);box-shadow:0 20px 40px rgba(255,199,44,0.18);} .video-frame{position:relative;width:100%;aspect-ratio:9/16;background:#000;} .video-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0;} .work-caption{padding:16px 18px 20px;} .work-card .tag{font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--red);margin-bottom:6px;} .work-card h4{font-size:15.5px;font-weight:800;}
         .process{background:var(--black);} .process-row{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid rgba(251,250,247,0.12);border-bottom:1px solid rgba(251,250,247,0.12);} @media(max-width:900px){.process-row{grid-template-columns:1fr 1fr;}} @media(max-width:600px){.process-row{grid-template-columns:1fr;}} .process-step{padding:32px 24px;border-right:1px solid rgba(251,250,247,0.12);} .process-step:last-child{border-right:none;} @media(max-width:900px){.process-step{border-bottom:1px solid rgba(251,250,247,0.12);}} .process-step .pnum{font-family:'Archivo Black',sans-serif;font-size:30px;color:var(--red);} .process-step h4{margin-top:14px;font-size:16px;font-weight:800;} .process-step p{margin-top:8px;font-size:13px;line-height:1.55;color:rgba(251,250,247,0.55);} .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin-top:1px;background:var(--red);} @media(max-width:600px){.stats-row{grid-template-columns:1fr 1fr;}} .stat{background:var(--red);padding:30px 20px;text-align:center;} .stat .num{font-family:'Archivo Black',sans-serif;font-size:clamp(26px,3.4vw,38px);color:var(--black);} .stat .label{margin-top:6px;font-size:11.5px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(10,10,10,0.72);font-weight:700;}
         .pricing{background:var(--black);} .price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;} @media(max-width:900px){.price-grid{grid-template-columns:1fr;max-width:400px;margin:0 auto;}} .price-card{border:1px solid rgba(251,250,247,0.12);border-radius:20px;padding:36px 30px;display:flex;flex-direction:column;gap:20px;transition:transform .3s ease,border-color .3s ease;} .price-card:hover{transform:translateY(-8px);border-color:var(--yellow);} .price-card.popular{background:var(--red);border-color:var(--red);position:relative;} .price-card.popular .badge{position:absolute;top:-14px;right:28px;background:var(--yellow);color:var(--black);font-size:11px;font-weight:800;padding:6px 14px;border-radius:100px;letter-spacing:0.04em;} .price-plan{font-size:13px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(251,250,247,0.6);} .price-card.popular .price-plan{color:rgba(10,10,10,0.7);} .price-amount{font-family:'Archivo Black',sans-serif;font-size:38px;} .price-amount span{font-family:'Inter',sans-serif;font-size:13px;font-weight:600;opacity:0.6;} .price-list{display:flex;flex-direction:column;gap:10px;font-size:13.5px;} .price-list div{display:flex;align-items:center;gap:8px;color:rgba(251,250,247,0.78);} .price-card.popular .price-list div{color:rgba(10,10,10,0.85);} .price-btn{margin-top:auto;text-align:center;padding:13px;border-radius:100px;font-weight:700;font-size:13.5px;border:1.5px solid rgba(251,250,247,0.12);transition:background .2s,color .2s,border-color .2s;} .price-btn:hover{background:var(--yellow);color:var(--black);border-color:var(--yellow);} .price-card.popular .price-btn{background:var(--black);color:var(--white);border-color:var(--black);} .price-card.popular .price-btn:hover{background:var(--yellow);color:var(--black);}
@@ -493,16 +551,16 @@ function PricingPage() {
                 <div className="service-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12 L9 16 L19 6" stroke="#0A0A0A" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
                 <h3>{service.title}</h3>
                 <p>{service.description}</p>
-                <a
-                  href="#contact"
+                <button
+                  type="button"
                   className="learn"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleNavigate('#contact');
+                  onClick={() => {
+                    trackMarketing('cta_click', `Learn more: ${service.title}`);
+                    setOpenService(serviceInfo(service));
                   }}
                 >
                   {blocks.serviceLinkText} →
-                </a>
+                </button>
               </div>
             ))}
           </div>
@@ -701,6 +759,39 @@ function PricingPage() {
           </div>
         </div>
       </section>}
+
+      {openService && (
+        <div className="service-modal" onClick={() => setOpenService(null)}>
+          <div className="service-modal-card" role="dialog" aria-modal="true" aria-labelledby="service-modal-title" onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="service-modal-close" onClick={() => setOpenService(null)}>Close</button>
+            <div className="kicker">{blocks.servicesKicker || 'What We Do'}</div>
+            <h2 className="display" id="service-modal-title">{openService.title}</h2>
+            <p>{openService.details}</p>
+            {openService.includes.length > 0 && (
+              <ul>
+                {openService.includes.map((item) => <li key={item}>{item}</li>)}
+              </ul>
+            )}
+            <div className="service-modal-actions">
+              <button
+                type="button"
+                className="service-modal-primary"
+                onClick={() => {
+                  setContactForm((current) => ({
+                    ...current,
+                    message: current.message || `I'm interested in ${openService.title}.`,
+                  }));
+                  setOpenService(null);
+                  handleNavigate('#contact');
+                }}
+              >
+                Start this service
+              </button>
+              <button type="button" className="service-modal-secondary" onClick={() => setOpenService(null)}>Back to services</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <footer>
         <div className="wrap">

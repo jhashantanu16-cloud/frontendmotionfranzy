@@ -499,9 +499,11 @@ function ContentManager({ user }) {
               <div className="form-group">
                 <label>Services</label>
                 {(settings.contentBlocks?.services || []).map((service, index) => (
-                  <div className="feature-item" key={index}>
+                  <div className="feature-item feature-card" key={index}>
                     <input type="text" value={service.title || ''} onChange={(e) => updateArrayItem('contentBlocks.services', index, 'title', e.target.value)} placeholder="Service title" />
-                    <textarea rows="2" value={service.description || ''} onChange={(e) => updateArrayItem('contentBlocks.services', index, 'description', e.target.value)} placeholder="Description" />
+                    <textarea rows="2" value={service.description || ''} onChange={(e) => updateArrayItem('contentBlocks.services', index, 'description', e.target.value)} placeholder="Short card description" />
+                    <textarea rows="4" value={service.details || ''} onChange={(e) => updateArrayItem('contentBlocks.services', index, 'details', e.target.value)} placeholder="Learn More details" />
+                    <textarea rows="4" value={(service.includes || []).join('\n')} onChange={(e) => updateArrayItem('contentBlocks.services', index, 'includes', e.target.value.split('\n'))} placeholder="What's included, one item per line" />
                   </div>
                 ))}
               </div>
