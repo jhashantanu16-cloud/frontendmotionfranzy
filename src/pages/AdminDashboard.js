@@ -4,7 +4,7 @@ import { API_BASE_URL } from '../config';
 import ContentManager from '../components/ContentManager';
 import './AdminDashboard.css';
 
-function AdminDashboard({ user, onDemoAdminLogin, onLogout }) {
+function AdminDashboard({ user, onLogout }) {
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
   const [subscriptions, setSubscriptions] = useState([]);
@@ -79,22 +79,6 @@ function AdminDashboard({ user, onDemoAdminLogin, onLogout }) {
       setReplyStatus(error.response?.data?.message || 'Message could not be deleted.');
     }
   };
-
-  if (!user || user.role !== 'admin') {
-    return (
-      <div className="admin-dashboard">
-        <div className="wrap">
-          <div className="admin-header">
-            <h1 className="display">Admin Access</h1>
-            <p>Sign in as the demo admin to access the CMS and reporting dashboard.</p>
-          </div>
-          <div className="admin-content">
-            <button className="btn-primary" onClick={onDemoAdminLogin}>Login as Demo Admin</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (loading) {
     return <div className="admin-loading">Loading...</div>;

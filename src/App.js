@@ -41,11 +41,6 @@ function App() {
     }
   };
 
-  const handleDemoAdminLogin = async () => {
-    const result = await handleLogin('admin@gmail.com', 'Admin@123');
-    return result;
-  };
-
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -63,7 +58,7 @@ function App() {
           path="/admin"
           element={
             user && user.role === 'admin' ? (
-              <AdminDashboard user={user} onDemoAdminLogin={handleDemoAdminLogin} onLogout={handleLogout} />
+              <AdminDashboard user={user} onLogout={handleLogout} />
             ) : (
               <Navigate to="/login" replace />
             )

@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 
 function LoginPage({ onLogin }) {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ email: 'admin@gmail.com', password: 'Admin@123' });
+  const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -14,7 +13,6 @@ function LoginPage({ onLogin }) {
     setError('');
 
     const result = await onLogin(form.email, form.password);
-
     if (result.success) {
       navigate('/admin');
     } else {
@@ -42,7 +40,7 @@ function LoginPage({ onLogin }) {
         padding: '32px 24px'
       }}>
         <h2 style={{ marginTop: 0 }}>Admin Login</h2>
-        <p style={{ color: '#cbd5e1' }}>Use the default admin account</p>
+        <p style={{ color: '#cbd5e1' }}>Sign in with the admin account stored in the database.</p>
 
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '16px' }}>
           <div>
@@ -51,6 +49,8 @@ function LoginPage({ onLogin }) {
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
+              required
+              autoComplete="username"
               style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #334155', background: '#0f172a', color: '#fff' }}
             />
           </div>
@@ -61,6 +61,9 @@ function LoginPage({ onLogin }) {
               type="password"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
+              required
+              minLength={6}
+              autoComplete="current-password"
               style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #334155', background: '#0f172a', color: '#fff' }}
             />
           </div>
@@ -76,7 +79,7 @@ function LoginPage({ onLogin }) {
             fontWeight: 700,
             cursor: 'pointer'
           }}>
-            {loading ? 'Signing in...' : 'Login'}
+            {loading ? 'Please wait...' : 'Login'}
           </button>
         </form>
       </div>
