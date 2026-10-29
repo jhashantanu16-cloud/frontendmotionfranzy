@@ -208,6 +208,34 @@ function ContentManager({ user }) {
     }
   };
 
+  const uploadHeroVideo = async (file) => {
+    if (!file) return;
+    try {
+      setSaving(true);
+      const data = new FormData();
+      data.append('video', file);
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${API_BASE_URL}/api/media/hero`, data, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const url = response.data.url;
+      setSettings((current) => {
+        const slides = current.heroSection?.backgroundSlides || [];
+        if (slides.includes(url)) return current;
+        return {
+          ...current,
+          heroSection: { ...current.heroSection, backgroundSlides: [...slides, url] },
+        };
+      });
+      window.dispatchEvent(new Event('settings-updated'));
+      setMessage('Background video saved in the database.');
+    } catch (error) {
+      setMessage('Error uploading video: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const logoPreviewUrl = settings.logo?.url
     ? (String(settings.logo.url).startsWith('http') ? settings.logo.url : `${API_BASE_URL}${settings.logo.url}`)
     : '';
@@ -277,9 +305,13 @@ function ContentManager({ user }) {
                 ['title', 'Hero Title'], ['accent', 'Accent Text'], ['subtitle', 'Subtitle'], ['ctaText', 'Primary Button Text'], ['ctaLink', 'Primary Button Link'], ['badgeText', 'Badge Text'], ['badgeValue', 'Badge Value'], ['badgeSub', 'Badge Subtext'],
               ].map(([field, label]) => <div className="form-group" key={field}><label>{label}</label>{field === 'subtitle' ? <textarea rows="3" value={settings.heroSection?.[field] || ''} onChange={(e) => updateSection('heroSection', field, e.target.value)} /> : <input value={settings.heroSection?.[field] || ''} onChange={(e) => updateSection('heroSection', field, e.target.value)} />}</div>)}
               <div className="form-group">
-                <label htmlFor="hero-background-slides">Background Video Slides (one video URL per line)</label>
-                <textarea id="hero-background-slides" rows="4" value={heroVideoSlides.join('\n')} onChange={(e) => updateSection('heroSection', 'backgroundSlides', e.target.value.split('\n').map((url) => url.trim()).filter(Boolean))} placeholder="https://example.com/video.mp4" />
-                <small>Add as many links as you want, one per line. The homepage plays them in order and keeps repeating. MP4 and WebM files play with no controls. Google Drive links play muted through Google’s player.</small>
+                <label htmlFor="hero-background-upload">Background video</label>
+                <input id="hero-background-upload" type="file" accept="video/mp4,video/webm" onChange={(e) => uploadHeroVideo(e.target.files?.[0])} />
+                <small>The file is saved in MongoDB. The homepage plays every saved video in the background, then repeats.</small>
+              </div>
+              <div className="form-group">
+                <label htmlFor="hero-background-slides">Background videos stored for the homepage</label>
+                <textarea id="hero-background-slides" rows="4" value={heroVideoSlides.join('\n')} onChange={(e) => updateSection('heroSection', 'backgroundSlides', e.target.value.split('\n').map((url) => url.trim()).filter(Boolean))} placeholder="/api/media/hero/video.mp4" />
               </div>
               <div className="form-group hero-opacity-setting">
                 <label htmlFor="hero-background-opacity">Background opacity: {Math.round(Number(settings.heroSection?.backgroundOpacity ?? 1) * 100)}%</label>

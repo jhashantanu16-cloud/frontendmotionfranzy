@@ -64,6 +64,7 @@ function PricingPage() {
   const [openService, setOpenService] = useState(null);
   const [heroSlideIndex, setHeroSlideIndex] = useState(0);
   const [readyHeroSources, setReadyHeroSources] = useState({});
+  const [settingsReady, setSettingsReady] = useState(false);
   const heroSlideTimer = useRef(null);
   const heroVideoRefs = useRef([]);
 
@@ -100,17 +101,13 @@ function PricingPage() {
           testimonials: res.data.marketing?.testimonials?.length ? res.data.marketing.testimonials : defaultMarketing.testimonials,
         },
       });
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => setSettingsReady(true));
 
     fetchSettings();
     const handleSettingsUpdate = () => fetchSettings();
     window.addEventListener('settings-updated', handleSettingsUpdate);
-    window.addEventListener('storage', handleSettingsUpdate);
-    window.addEventListener('focus', handleSettingsUpdate);
     return () => {
       window.removeEventListener('settings-updated', handleSettingsUpdate);
-      window.removeEventListener('storage', handleSettingsUpdate);
-      window.removeEventListener('focus', handleSettingsUpdate);
     };
   }, []);
 
@@ -187,7 +184,8 @@ const serviceInfo = (service) => {
   [...(hero.backgroundSlides || []), ...(hero.backgroundVideos || [])].forEach((url) => {
     const value = String(url || '').trim();
     if (!value) return;
-    const driveId = value.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:[^#]*&)?id=)([^/?&#]+)/i)?.[1];
+    const driveId = value.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:[^#]*&)?id=)([^/?&#]+)/i)?.[1]
+      || value.match(/\/hero\/([^/?#]+)/i)?.[1]?.replace(/\.mp4$/i, '');
     const key = (driveId || value).toLowerCase();
     if (seenHeroSlides.has(key)) return;
     seenHeroSlides.add(key);
@@ -201,8 +199,11 @@ const serviceInfo = (service) => {
 
   const getHeroVideoSource = (videoUrl = '') => {
     const driveFileId = videoUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:[^#]*&)?id=)([^/?&#]+)/i)?.[1];
+    if (String(videoUrl).startsWith('/api/')) {
+      return { type: 'file', url: `${API_BASE_URL}${videoUrl}`, local: true };
+    }
     if (driveFileId) {
-      return { type: 'file', url: `${API_BASE_URL}/uploads/hero/${driveFileId}.mp4`, local: true };
+      return { type: 'file', url: `${API_BASE_URL}/api/media/hero/${driveFileId}.mp4`, local: true };
     }
     return { type: 'file', url: videoUrl, local: false };
   };
@@ -224,7 +225,13 @@ const serviceInfo = (service) => {
           next[url] = false;
         }
       }));
-      if (!stopped) setReadyHeroSources(next);
+      if (!stopped) {
+        setReadyHeroSources((current) => {
+          const same = Object.keys(next).length === Object.keys(current).length
+            && Object.keys(next).every((url) => current[url] === next[url]);
+          return same ? current : next;
+        });
+      }
     };
     check();
     const timer = window.setInterval(check, 4000);
@@ -401,6 +408,10 @@ const serviceInfo = (service) => {
       document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   };
+
+  if (!settingsReady) {
+    return <div style={{ minHeight: '100vh', background: '#0A0A0A' }} />;
+  }
 
   return (
     <>
