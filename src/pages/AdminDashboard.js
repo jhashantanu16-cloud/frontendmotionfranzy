@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 import ContentManager from '../components/ContentManager';
 import './AdminDashboard.css';
 
@@ -29,10 +30,10 @@ function AdminDashboard({ user, onDemoAdminLogin, onLogout }) {
       const headers = { Authorization: `Bearer ${token}` };
 
       const [statsRes, usersRes, subsRes, messagesRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/admin/stats', { headers }),
-        axios.get('http://localhost:5000/api/admin/users', { headers }),
-        axios.get('http://localhost:5000/api/admin/subscriptions', { headers }),
-        axios.get('http://localhost:5000/api/admin/messages', { headers }),
+        axios.get(`${API_BASE_URL}/api/admin/stats`, { headers }),
+        axios.get(`${API_BASE_URL}/api/admin/users`, { headers }),
+        axios.get(`${API_BASE_URL}/api/admin/subscriptions`, { headers }),
+        axios.get(`${API_BASE_URL}/api/admin/messages`, { headers }),
       ]);
 
       setStats(statsRes.data);
@@ -51,7 +52,7 @@ function AdminDashboard({ user, onDemoAdminLogin, onLogout }) {
     try {
       setReplyStatus('Sending…');
       const token = localStorage.getItem('token');
-      await axios.post(`http://localhost:5000/api/admin/messages/${item._id}/reply`, {
+      await axios.post(`${API_BASE_URL}/api/admin/messages/${item._id}/reply`, {
         subject: 'Re: Your Motion Franzy inquiry',
         message: replyText,
       }, { headers: { Authorization: `Bearer ${token}` } });
@@ -68,7 +69,7 @@ function AdminDashboard({ user, onDemoAdminLogin, onLogout }) {
     if (!window.confirm(`Delete the message from ${item.name}? This cannot be undone.`)) return;
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:5000/api/admin/messages/${item._id}`, {
+      await axios.delete(`${API_BASE_URL}/api/admin/messages/${item._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setMessages((current) => current.filter((message) => message._id !== item._id));

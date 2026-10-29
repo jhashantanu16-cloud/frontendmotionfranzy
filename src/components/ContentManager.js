@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 import './ContentManager.css';
 
 const demoHeroVideos = [
@@ -86,7 +87,7 @@ function ContentManager({ user }) {
   const fetchSettings = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/settings', {
+      const response = await axios.get(`${API_BASE_URL}/api/settings`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -142,7 +143,7 @@ function ContentManager({ user }) {
       delete settingsPayload.__v;
       delete settingsPayload.createdAt;
       delete settingsPayload.updatedAt;
-      const response = await axios.put('http://localhost:5000/api/settings', settingsPayload, { headers: { Authorization: `Bearer ${token}` } });
+      const response = await axios.put(`${API_BASE_URL}/api/settings`, settingsPayload, { headers: { Authorization: `Bearer ${token}` } });
       setSettings((current) => ({ ...current, ...response.data }));
       localStorage.setItem('settingsUpdated', String(Date.now()));
       window.dispatchEvent(new Event('settings-updated'));

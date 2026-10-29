@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 import './PricingPagePolish.css';
 
 const defaultSettings = {
@@ -74,7 +75,7 @@ function PricingPage() {
       return () => window.removeEventListener('message', receivePreviewSettings);
     }
 
-    const fetchSettings = () => axios.get('http://localhost:5000/api/settings').then((res) => {
+    const fetchSettings = () => axios.get(`${API_BASE_URL}/api/settings`).then((res) => {
       setSettings({
         ...defaultSettings,
         ...res.data,
@@ -196,7 +197,7 @@ function PricingPage() {
     try {
       setSubmitting(true);
       setFormStatus('');
-      await axios.post('http://localhost:5000/api/contact', {
+      await axios.post(`${API_BASE_URL}/api/contact`, {
         ...contactForm,
         plan: selectedPlan?.name || '',
         price: selectedPlan?.price || '',
