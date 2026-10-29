@@ -63,6 +63,7 @@ function PricingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [openService, setOpenService] = useState(null);
   const [heroSlideIndex, setHeroSlideIndex] = useState(0);
+  const [heroFrameReady, setHeroFrameReady] = useState(false);
   const heroSlideTimer = useRef(null);
 
   useEffect(() => {
@@ -188,23 +189,30 @@ const serviceInfo = (service) => {
   }, [heroBackgroundKey]);
 
   useEffect(() => {
-    if (!heroBackgroundSlides.length) return undefined;
+    setHeroFrameReady(false);
+  }, [heroBackgroundKey, heroSlideIndex]);
+
+  useEffect(() => {
+    if (heroBackgroundSlides.length < 2) return undefined;
     const url = heroBackgroundSlides[heroSlideIndex % heroBackgroundSlides.length];
     const isDirectFile = !/drive\.google\.com/i.test(url);
-    if (isDirectFile && heroBackgroundSlides.length > 1) return undefined;
-    const delay = heroBackgroundSlides.length > 1 ? 12000 : 20000;
+    if (isDirectFile) return undefined;
     heroSlideTimer.current = window.setTimeout(() => {
       setHeroSlideIndex((current) => current + 1);
-    }, delay);
+    }, 12000);
     return () => window.clearTimeout(heroSlideTimer.current);
   }, [heroBackgroundKey, heroSlideIndex]);
 
   const getHeroVideoSource = (videoUrl = '') => {
     const driveFileId = videoUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:[^#]*&)?id=)([^/?&#]+)/i)?.[1];
     if (driveFileId) {
-      return { type: 'drive', url: `https://drive.google.com/file/d/${driveFileId}/preview?autoplay=1&mute=1` };
+      return {
+        type: 'drive',
+        url: `https://drive.google.com/file/d/${driveFileId}/preview?autoplay=1&mute=1`,
+        poster: `https://lh3.googleusercontent.com/d/${driveFileId}=w1600`,
+      };
     }
-    return { type: 'file', url: videoUrl };
+    return { type: 'file', url: videoUrl, poster: '' };
   };
 
   const advanceHeroVideo = () => {
@@ -438,6 +446,9 @@ const serviceInfo = (service) => {
 
       <header className="hero hero-slideshow-background">
         <div className="hero-bg-slides" aria-hidden="true">
+          {currentHeroVideo?.poster && (
+            <img className="hero-bg-poster" src={currentHeroVideo.poster} alt="" />
+          )}
           {currentHeroVideo?.type === 'drive' ? (
             <div className="hero-bg-frame-mask">
               <iframe
@@ -447,7 +458,8 @@ const serviceInfo = (service) => {
                 title="Hero background video"
                 allow="autoplay; encrypted-media"
                 tabIndex={-1}
-                style={heroVideoStyle}
+                onLoad={() => setHeroFrameReady(true)}
+                style={{ ...heroVideoStyle, opacity: heroFrameReady ? heroVideoStyle.opacity : 0 }}
               />
             </div>
           ) : currentHeroVideo?.url ? (
