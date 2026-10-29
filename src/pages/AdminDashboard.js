@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
 import ContentManager from '../components/ContentManager';
+import MarketingPanel from '../components/MarketingPanel';
 import './AdminDashboard.css';
 
 function AdminDashboard({ user, onLogout }) {
@@ -100,8 +101,15 @@ function AdminDashboard({ user, onLogout }) {
           <button className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>Users</button>
           <button className={`tab-btn ${activeTab === 'subscriptions' ? 'active' : ''}`} onClick={() => setActiveTab('subscriptions')}>Subscriptions</button>
           <button className={`tab-btn ${activeTab === 'messages' ? 'active' : ''}`} onClick={() => setActiveTab('messages')}>Messages {messages.length > 0 ? `(${messages.length})` : ''}</button>
+          <button className={`tab-btn ${activeTab === 'marketing' ? 'active' : ''}`} onClick={() => setActiveTab('marketing')}>Marketing</button>
           <button className={`tab-btn ${activeTab === 'cms' ? 'active' : ''}`} onClick={() => setActiveTab('cms')}>CMS</button>
         </div>
+
+        {activeTab === 'marketing' && (
+          <div className="admin-content">
+            <MarketingPanel />
+          </div>
+        )}
 
         {activeTab === 'cms' && (
           <div className="admin-content">
@@ -192,6 +200,7 @@ function AdminDashboard({ user, onLogout }) {
                       <span>{new Date(item.createdAt).toLocaleString()}</span>
                     </div>
                     {item.plan && <div className="message-plan">Plan inquiry: {item.plan}</div>}
+                    {item.source && <div className="message-plan">Source: {item.source}</div>}
                     <p>{item.message}</p>
                     <div className="message-actions"><button type="button" className="reply-link reply-button" onClick={() => { setReplyingTo(item._id); setReplyStatus(''); }}>Reply</button><button type="button" className="delete-message-button" onClick={() => deleteMessage(item)}>Delete</button></div>
                     {replyingTo === item._id && <div className="reply-form"><textarea rows="5" value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder={`Reply to ${item.name}…`} /><div><button type="button" className="btn-primary" onClick={() => sendMessageReply(item)}>Send Reply</button><button type="button" className="btn-secondary" onClick={() => setReplyingTo(null)}>Cancel</button></div></div>}

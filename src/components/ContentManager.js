@@ -3,11 +3,6 @@ import axios from 'axios';
 import { API_BASE_URL } from '../config';
 import './ContentManager.css';
 
-const demoHeroVideos = [
-  'https://www.w3schools.com/html/mov_bbb.mp4',
-  'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
-];
-
 const defaultSettings = {
   siteName: 'Motion Franzy',
   siteTitle: 'Motion Franzy — AI Ads Agency',
@@ -22,7 +17,7 @@ const defaultSettings = {
     ctaText: "Let's Talk",
     ctaLink: '#contact',
   },
-  heroSection: { enabled: true, title: 'ADS BUILT TO STOP THE SCROLL.', accent: 'STOP THE SCROLL.', subtitle: '', ctaText: 'See the Work', ctaLink: '#work', backgroundOpacity: 1, backgroundSlides: demoHeroVideos, badgeText: 'AI-MADE', badgeValue: '100%', badgeSub: 'NO CREW' },
+  heroSection: { enabled: true, title: 'ADS BUILT TO STOP THE SCROLL.', accent: 'STOP THE SCROLL.', subtitle: '', ctaText: 'See the Work', ctaLink: '#work', backgroundOpacity: 1, backgroundSlides: [], badgeText: 'AI-MADE', badgeValue: '100%', badgeSub: 'NO CREW' },
   footer: {
     companyName: 'Motion Franzy',
     description: 'AI ads and creative systems built for modern brands.',
@@ -193,9 +188,30 @@ function ContentManager({ user }) {
     }));
   };
 
-  const currentHeroSlides = settings.heroSection?.backgroundSlides || [];
-  const currentSlidesAreImages = currentHeroSlides.length > 0 && currentHeroSlides.every((url) => /\.(avif|gif|jpe?g|png|svg|webp)(\?.*)?$/i.test(url) || /images\.unsplash\.com/i.test(url));
-  const heroVideoSlides = currentSlidesAreImages ? defaultSettings.heroSection.backgroundSlides : currentHeroSlides;
+  const uploadLogo = async (file) => {
+    if (!file) return;
+    try {
+      setSaving(true);
+      const data = new FormData();
+      data.append('logo', file);
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${API_BASE_URL}/api/settings/logo/upload`, data, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSettings((current) => ({ ...current, logo: { url: response.data.url } }));
+      window.dispatchEvent(new Event('settings-updated'));
+      setMessage('Logo updated.');
+    } catch (error) {
+      setMessage('Error uploading logo: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const logoPreviewUrl = settings.logo?.url
+    ? (String(settings.logo.url).startsWith('http') ? settings.logo.url : `${API_BASE_URL}${settings.logo.url}`)
+    : '';
+  const heroVideoSlides = (settings.heroSection?.backgroundSlides || []).map((url) => String(url).trim()).filter(Boolean);
 
   if (loading) return <div className="content-manager-loading">Loading settings...</div>;
 
@@ -263,17 +279,7 @@ function ContentManager({ user }) {
               <div className="form-group">
                 <label htmlFor="hero-background-slides">Background Video Slides (one video URL per line)</label>
                 <textarea id="hero-background-slides" rows="4" value={heroVideoSlides.join('\n')} onChange={(e) => updateSection('heroSection', 'backgroundSlides', e.target.value.split('\n').map((url) => url.trim()).filter(Boolean))} placeholder="https://example.com/video.mp4" />
-                <small>Use direct MP4/WebM links or Google Drive video share links ending in /preview. Clips play as full-bleed backgrounds and advance automatically.</small>
-                <button type="button" className="btn-secondary add-btn" disabled={saving} onClick={() => {
-                  const nextSettings = {
-                    ...settings,
-                    heroSection: { ...(settings.heroSection || {}), backgroundSlides: demoHeroVideos },
-                  };
-                  setSettings(nextSettings);
-                  handleSaveSettings(nextSettings);
-                }}>
-                  {saving ? 'Saving…' : 'Use & Save Demo Videos'}
-                </button>
+                <small>Add as many links as you want, one per line. The homepage plays them in order and keeps repeating. MP4 and WebM files play with no controls. Google Drive links play muted through Google’s player.</small>
               </div>
               <div className="form-group hero-opacity-setting">
                 <label htmlFor="hero-background-opacity">Background opacity: {Math.round(Number(settings.heroSection?.backgroundOpacity ?? 1) * 100)}%</label>
@@ -400,6 +406,14 @@ function ContentManager({ user }) {
           {activeTab === 'branding' && (
             <div className="section">
               <h2>Branding</h2>
+              <div className="form-group logo-upload">
+                <label>Logo image</label>
+                {logoPreviewUrl ? <div className="logo-preview"><img src={logoPreviewUrl} alt="Current logo" /></div> : <p>No logo image yet. The built-in mark is shown on the site.</p>}
+                <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" onChange={(e) => uploadLogo(e.target.files?.[0])} />
+                <input type="text" value={settings.logo?.url || ''} placeholder="Or paste an image URL" onChange={(e) => setSettings((current) => ({ ...current, logo: { url: e.target.value } }))} />
+                {settings.logo?.url ? <button type="button" className="btn-secondary" onClick={() => setSettings((current) => ({ ...current, logo: { url: '' } }))}>Remove logo image</button> : null}
+                <small>Upload applies immediately. A pasted URL is published when you click Save Changes. The image replaces the mark in the header, footer, and browser tab.</small>
+              </div>
               <div className="form-group">
                 <label>Logo Text</label>
                 <input type="text" value={settings.brand?.logoText || ''} onChange={(e) => updateSection('brand', 'logoText', e.target.value)} />

@@ -151,6 +151,20 @@
 .reply-form > div { display: flex; gap: 10px; }
 .reply-status { padding: 12px; border-radius: 10px; background: rgba(59,130,246,.14); color: #bfdbfe; }
 
+.marketing-panel { display: grid; gap: 22px; }
+.marketing-block { display: grid; gap: 12px; padding-top: 8px; }
+.marketing-block h2 { margin: 0; font-size: 1.25rem; }
+.marketing-block p, .marketing-block label { color: #cbd5e1; }
+.marketing-block label { display: grid; gap: 6px; font-size: 13px; font-weight: 700; }
+.marketing-block input, .marketing-block textarea { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid rgba(148, 163, 184, 0.3); background: #0f172a; color: #fff; font: inherit; font-weight: 500; }
+.marketing-check { display: flex !important; align-items: center; gap: 8px; }
+.marketing-check input { width: auto; }
+.marketing-card { display: grid; gap: 10px; padding: 16px; border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 14px; }
+.marketing-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.marketing-list li { display: flex; justify-content: space-between; padding: 10px 12px; border-radius: 10px; background: rgba(15, 23, 42, 0.55); }
+.marketing-remove, .btn-secondary { border: 1px solid rgba(148, 163, 184, 0.35); background: transparent; color: #e2e8f0; border-radius: 10px; padding: 8px 12px; cursor: pointer; font-weight: 700; }
+.btn-secondary { justify-self: start; }
+
 .btn-primary {
   border: none;
   background: linear-gradient(135deg, #8b5cf6, #3b82f6);
