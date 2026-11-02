@@ -1,0 +1,61 @@
+.brand-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 22px;
+  background: #0a0a0a;
+  color: #fbfaf7;
+}
+
+.brand-loader-glow {
+  position: absolute;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(237, 42, 34, 0.45), transparent 68%);
+  filter: blur(8px);
+  animation: brand-loader-glow 1.6s ease-in-out infinite;
+}
+
+.brand-loader-logo {
+  position: relative;
+  width: min(460px, 86vw);
+  height: auto;
+  animation: brand-loader-pulse 1.6s ease-in-out infinite;
+}
+
+.brand-loader-bar {
+  position: relative;
+  width: 120px;
+  height: 3px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: rgba(251, 250, 247, 0.16);
+}
+
+.brand-loader-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  background: #ed2a22;
+  animation: brand-loader-slide 1s ease-in-out infinite;
+}
+
+@keyframes brand-loader-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.86; }
+  50% { transform: scale(1.04); opacity: 1; }
+}
+
+@keyframes brand-loader-glow {
+  0%, 100% { opacity: 0.45; transform: scale(0.92); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes brand-loader-slide {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(320%); }
+}

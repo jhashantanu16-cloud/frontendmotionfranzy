@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
+import BrandLoader, { BRAND_LOGO } from './BrandLoader';
+import { defaultSeo } from '../seoDefaults';
 import './ContentManager.css';
 
 const defaultSettings = {
@@ -36,11 +38,7 @@ const defaultSettings = {
     showcaseVideos: ['https://drive.google.com/file/d/1gHorDzFkLBJo7OHGEcaWMzCvh_Jff2X3/preview', 'https://drive.google.com/file/d/1b0K5NKnQ_EUiqlnVg0nuG4ZRiVbjZsmg/preview'],
     workVideos: ['https://drive.google.com/file/d/1t8Pa7sulJI0naaUZri_DgQSkKoqelGdN/preview', 'https://drive.google.com/file/d/1gHorDzFkLBJo7OHGEcaWMzCvh_Jff2X3/preview'],
   },
-  seo: {
-    metaTitle: 'Motion Franzy — AI Ads Agency',
-    metaDescription: 'AI-powered advertising studio for beauty, cosmetics and ecommerce brands.',
-    keywords: 'AI ads, growth, branding, creative agency',
-  },
+  seo: defaultSeo,
   contentBlocks: {
     heroEyebrow: 'AI Advertising Studio', heroSecondaryCta: 'Start a Project', marqueeItems: ['BUILT FOR META ADS', 'INSTAGRAM REELS', 'YOUTUBE SHORTS', 'GOOGLE ADS FORMATS', 'ECOMMERCE BRANDS'],
     introTitle: 'NOT JUST VIDEOS, A GROWTH ENGINE.',
@@ -236,12 +234,10 @@ function ContentManager({ user }) {
     }
   };
 
-  const logoPreviewUrl = settings.logo?.url
-    ? (String(settings.logo.url).startsWith('http') ? settings.logo.url : `${API_BASE_URL}${settings.logo.url}`)
-    : '';
+  const logoPreviewUrl = BRAND_LOGO;
   const heroVideoSlides = (settings.heroSection?.backgroundSlides || []).map((url) => String(url).trim()).filter(Boolean);
 
-  if (loading) return <div className="content-manager-loading">Loading settings...</div>;
+  if (loading) return <BrandLoader />;
 
   return (
     <div className="content-manager">
@@ -376,9 +372,15 @@ function ContentManager({ user }) {
                       const items = [...(settings.header?.navItems || [])];
                       items[index] = { ...items[index], href: e.target.value };
                       updateSection('header', 'navItems', items);
-                    }} placeholder="#section" />
+                    }} placeholder="#section or /work" />
+                    <button type="button" className="remove-btn" onClick={() => {
+                      const items = (settings.header?.navItems || []).filter((_, itemIndex) => itemIndex !== index);
+                      updateSection('header', 'navItems', items);
+                    }}>Remove</button>
                   </div>
                 ))}
+                <button type="button" className="btn-secondary add-btn" onClick={() => updateSection('header', 'navItems', [...(settings.header?.navItems || []), { label: 'New item', href: '#contact' }])}>Add navigation item</button>
+                <small>Use #work, #services, #process, #pricing, or #contact to stay on the homepage. Use /work for the full reels page.</small>
               </div>
             </div>
           )}
@@ -432,6 +434,51 @@ function ContentManager({ user }) {
                 <label>Keywords</label>
                 <input type="text" value={settings.seo?.keywords || ''} onChange={(e) => updateSection('seo', 'keywords', e.target.value)} />
               </div>
+              <div className="form-group">
+                <label>Canonical URL</label>
+                <input type="text" value={settings.seo?.canonicalUrl || ''} onChange={(e) => updateSection('seo', 'canonicalUrl', e.target.value)} placeholder="https://motionfranzy.com/" />
+              </div>
+              <div className="form-group">
+                <label>Robots Meta</label>
+                <input type="text" value={settings.seo?.robots || ''} onChange={(e) => updateSection('seo', 'robots', e.target.value)} placeholder="index, follow" />
+              </div>
+              <div className="form-group">
+                <label>OG Title</label>
+                <input type="text" value={settings.seo?.ogTitle || ''} onChange={(e) => updateSection('seo', 'ogTitle', e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label>OG Description</label>
+                <textarea rows="3" value={settings.seo?.ogDescription || ''} onChange={(e) => updateSection('seo', 'ogDescription', e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label>OG Image</label>
+                <input type="text" value={settings.seo?.ogImage || ''} onChange={(e) => updateSection('seo', 'ogImage', e.target.value)} placeholder="https://motionfranzy.com/motion-franzy-logo.png" />
+                <small>Use a full https image address. A 1200×630 image is the size social sites expect.</small>
+              </div>
+              <div className="form-group">
+                <label>Page SEO</label>
+                {(settings.seo?.pages?.length ? settings.seo.pages : defaultSeo.pages).map((page, index) => (
+                  <div className="feature-item" key={page.key || index}>
+                    <input type="text" value={page.label || ''} readOnly />
+                    <input type="text" value={page.path || ''} placeholder="Path" onChange={(e) => {
+                      const pages = [...(settings.seo?.pages?.length ? settings.seo.pages : defaultSeo.pages)];
+                      pages[index] = { ...pages[index], path: e.target.value };
+                      updateSection('seo', 'pages', pages);
+                    }} />
+                    <input type="text" value={page.title || ''} placeholder="Title" onChange={(e) => {
+                      const pages = [...(settings.seo?.pages?.length ? settings.seo.pages : defaultSeo.pages)];
+                      pages[index] = { ...pages[index], title: e.target.value };
+                      updateSection('seo', 'pages', pages);
+                    }} />
+                    <textarea rows="2" value={page.description || ''} placeholder="Description" onChange={(e) => {
+                      const pages = [...(settings.seo?.pages?.length ? settings.seo.pages : defaultSeo.pages)];
+                      pages[index] = { ...pages[index], description: e.target.value };
+                      updateSection('seo', 'pages', pages);
+                    }} />
+                  </div>
+                ))}
+                <small>Homepage, Services and Contact share one public page. Portfolio is /work. About has no page yet, so its metadata is stored here until that page exists.</small>
+              </div>
             </div>
           )}
 
@@ -444,7 +491,7 @@ function ContentManager({ user }) {
                 <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" onChange={(e) => uploadLogo(e.target.files?.[0])} />
                 <input type="text" value={settings.logo?.url || ''} placeholder="Or paste an image URL" onChange={(e) => setSettings((current) => ({ ...current, logo: { url: e.target.value } }))} />
                 {settings.logo?.url ? <button type="button" className="btn-secondary" onClick={() => setSettings((current) => ({ ...current, logo: { url: '' } }))}>Remove logo image</button> : null}
-                <small>Upload applies immediately. A pasted URL is published when you click Save Changes. The image replaces the mark in the header, footer, and browser tab.</small>
+                <small>The header, footer, loader, and browser tab use the Motion Franzy logo.</small>
               </div>
               <div className="form-group">
                 <label>Logo Text</label>
@@ -507,8 +554,19 @@ function ContentManager({ user }) {
                       items[index] = { ...items[index], video: e.target.value };
                       updateSection('contentBlocks', 'workVideos', items);
                     }} placeholder="Video URL" />
+                    <input type="text" value={item.tag || ''} onChange={(e) => {
+                      const items = [...(settings.contentBlocks?.workVideos || [])];
+                      items[index] = { ...items[index], tag: e.target.value };
+                      updateSection('contentBlocks', 'workVideos', items);
+                    }} placeholder="Tag" />
+                    <button type="button" className="remove-btn" onClick={() => {
+                      const items = (settings.contentBlocks?.workVideos || []).filter((_, itemIndex) => itemIndex !== index);
+                      updateSection('contentBlocks', 'workVideos', items);
+                    }}>Remove</button>
                   </div>
                 ))}
+                <button type="button" className="btn-secondary add-btn" onClick={() => updateSection('contentBlocks', 'workVideos', [...(settings.contentBlocks?.workVideos || []), { title: 'New reel', video: '', tag: 'AI Ad' }])}>Add work video</button>
+                <small>The homepage shows the first 5 reels in one row, then a More button. That button opens /work with every video saved here. Click Save Changes after adding.</small>
               </div>
             </div>
           )}

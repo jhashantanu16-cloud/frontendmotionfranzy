@@ -1,11 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BRAND_LOGO } from '../components/BrandLoader';
 
 function LoginPage({ onLogin }) {
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let robots = document.querySelector('meta[name="robots"]');
+    if (!robots) {
+      robots = document.createElement('meta');
+      robots.setAttribute('name', 'robots');
+      document.head.appendChild(robots);
+    }
+    const previous = robots.getAttribute('content');
+    robots.setAttribute('content', 'noindex, nofollow');
+    return () => {
+      if (previous) robots.setAttribute('content', previous);
+    };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,19 +42,19 @@ function LoginPage({ onLogin }) {
       minHeight: '100vh',
       display: 'grid',
       placeItems: 'center',
-      background: 'linear-gradient(135deg, #0f172a, #111827)',
+      background: '#0a0a0a',
       color: '#fff',
       padding: '24px'
     }}>
       <div style={{
         width: '100%',
         maxWidth: '420px',
-        background: 'rgba(15, 23, 42, 0.85)',
-        border: '1px solid rgba(148,163,184,0.3)',
+        background: '#111111',
+        border: '1px solid rgba(251,250,247,0.12)',
         borderRadius: '20px',
         padding: '32px 24px'
       }}>
-        <h2 style={{ marginTop: 0 }}>Admin Login</h2>
+        <img src={BRAND_LOGO} alt="Motion Franzy" style={{ width: 280, height: 'auto', margin: '0 auto 18px', display: 'block' }} />
         <p style={{ color: '#cbd5e1' }}>Sign in with the admin account stored in the database.</p>
 
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '16px' }}>
@@ -74,7 +89,7 @@ function LoginPage({ onLogin }) {
             padding: '12px 16px',
             border: 'none',
             borderRadius: '12px',
-            background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
+            background: '#ED2A22',
             color: '#fff',
             fontWeight: 700,
             cursor: 'pointer'

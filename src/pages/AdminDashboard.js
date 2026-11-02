@@ -3,6 +3,7 @@ import axios from 'axios';
 import { API_BASE_URL } from '../config';
 import ContentManager from '../components/ContentManager';
 import MarketingPanel from '../components/MarketingPanel';
+import BrandLoader, { BRAND_LOGO } from '../components/BrandLoader';
 import './AdminDashboard.css';
 
 function AdminDashboard({ user, onLogout }) {
@@ -15,6 +16,16 @@ function AdminDashboard({ user, onLogout }) {
   const [replyStatus, setReplyStatus] = useState('');
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let robots = document.querySelector('meta[name="robots"]');
+    if (!robots) {
+      robots = document.createElement('meta');
+      robots.setAttribute('name', 'robots');
+      document.head.appendChild(robots);
+    }
+    robots.setAttribute('content', 'noindex, nofollow');
+  }, []);
 
   useEffect(() => {
     if (!user || user.role !== 'admin') {
@@ -82,7 +93,7 @@ function AdminDashboard({ user, onLogout }) {
   };
 
   if (loading) {
-    return <div className="admin-loading">Loading...</div>;
+    return <BrandLoader />;
   }
 
   return (
@@ -90,6 +101,7 @@ function AdminDashboard({ user, onLogout }) {
       <div className="wrap">
         <div className="admin-header admin-header-row">
           <div>
+            <img className="admin-brand-logo" src={BRAND_LOGO} alt="Motion Franzy" />
             <h1 className="display">Admin Dashboard</h1>
             <p>Manage users, subscriptions, and website content.</p>
           </div>

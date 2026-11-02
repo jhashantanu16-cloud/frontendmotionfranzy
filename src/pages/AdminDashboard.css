@@ -126,6 +126,12 @@
   color: #cbd5e1;
 }
 
+.admin-brand-logo {
+  width: 220px;
+  height: auto;
+  margin-bottom: 12px;
+}
+
 .admin-loading {
   min-height: 100vh;
   display: grid;

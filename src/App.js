@@ -5,6 +5,7 @@ import { API_BASE_URL } from './config';
 import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import PricingPage from './pages/PricingPage';
+import BrandLoader from './components/BrandLoader';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -47,12 +48,13 @@ function App() {
     setUser(null);
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <BrandLoader />;
 
   return (
     <>
       <Routes>
         <Route path="/" element={<PricingPage />} />
+        <Route path="/work" element={<PricingPage />} />
         <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
         <Route
           path="/admin"

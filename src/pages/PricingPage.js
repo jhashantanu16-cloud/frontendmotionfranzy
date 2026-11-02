@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
+import BrandLoader, { BRAND_LOGO, BRAND_FAVICON } from '../components/BrandLoader';
+import { defaultSeo, defaultSeoPages, SITE_ORIGIN } from '../seoDefaults';
 import defaultMarketing from '../marketingDefaults';
 import './PricingPagePolish.css';
 
@@ -51,11 +54,14 @@ const defaultSettings = {
   },
   footer: { companyName: 'Motion Franzy', description: 'AI ads and creative systems built for modern brands.', footerText: '© 2026 Motion Franzy. All rights reserved.', socialLinks: { instagram: '#', linkedin: '#', twitter: '#', youtube: '#' } },
   contactSection: { enabled: true, title: "Let's Talk.", email: 'shantanujha16@gmail.com', phone: '+1 (555) 123-4567', address: 'San Francisco, CA', hours: 'Monday – Friday: 9am – 6pm PT\nSaturday – Sunday: By appointment', formTitle: 'Send us a message' },
-  seo: { metaTitle: 'Motion Franzy — AI Ads Agency', metaDescription: 'AI-powered advertising studio for beauty, cosmetics and ecommerce brands.' },
+  seo: defaultSeo,
   marketing: defaultMarketing,
 };
 
 function PricingPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isWorkPage = location.pathname === '/work';
   const [settings, setSettings] = useState(defaultSettings);
   const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' });
   const [formStatus, setFormStatus] = useState('');
@@ -64,7 +70,8 @@ function PricingPage() {
   const [openService, setOpenService] = useState(null);
   const [heroSlideIndex, setHeroSlideIndex] = useState(0);
   const [readyHeroSources, setReadyHeroSources] = useState({});
-  const [settingsReady, setSettingsReady] = useState(false);
+  const [settingsReady, setSettingsReady] = useState(() => new URLSearchParams(window.location.search).has('cmsPreview'));
+  const [holdDone, setHoldDone] = useState(() => new URLSearchParams(window.location.search).has('cmsPreview'));
   const heroSlideTimer = useRef(null);
   const heroVideoRefs = useRef([]);
 
@@ -101,7 +108,8 @@ function PricingPage() {
           testimonials: res.data.marketing?.testimonials?.length ? res.data.marketing.testimonials : defaultMarketing.testimonials,
         },
       });
-    }).catch(() => {}).finally(() => setSettingsReady(true));
+      setSettingsReady(true);
+    }).catch(() => { setSettingsReady(true); });
 
     fetchSettings();
     const handleSettingsUpdate = () => fetchSettings();
@@ -121,12 +129,9 @@ function PricingPage() {
   const announcement = marketing.announcement || defaultMarketing.announcement;
   const offer = marketing.offer || defaultMarketing.offer;
   const testimonials = (marketing.testimonials || []).filter((item) => item.quote && item.name);
-  const logoUrl = settings.logo?.url
-    ? (String(settings.logo.url).startsWith('http') ? settings.logo.url : `${API_BASE_URL}${settings.logo.url}`)
-    : '';
-  const renderBrandMark = () => (logoUrl
-    ? <img className="brand-mark brand-logo" src={logoUrl} alt={settings.brand?.logoText || 'Motion Franzy'} />
-    : <svg className="brand-mark" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="var(--red)"/><path d="M22 62 L34 40 L44 58 L54 38" stroke="var(--yellow)" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" fill="none"/><path d="M58 66 Q62 40 78 24" stroke="#0A0A0A" strokeWidth="7" strokeLinecap="round" fill="none"/><circle cx="80" cy="20" r="3.4" fill="#0A0A0A"/></svg>);
+  const renderBrandMark = () => (
+    <img className="brand-logo" src={BRAND_LOGO} alt="Motion Franzy" />
+  );
   const navItems = header.navItems || defaultSettings.header.navItems;
   const services = blocks.services || defaultSettings.contentBlocks.services;
 const serviceDetailsByTitle = {
@@ -303,15 +308,90 @@ const serviceInfo = (service) => {
   }, [openService]);
 
   useEffect(() => {
-    if (settings.seo?.metaTitle) document.title = settings.seo.metaTitle;
-    const description = document.querySelector('meta[name="description"]');
-    if (description && settings.seo?.metaDescription) description.setAttribute('content', settings.seo.metaDescription);
+    const pages = settings.seo?.pages?.length ? settings.seo.pages : defaultSeoPages;
+    const pageKey = isWorkPage
+      ? 'portfolio'
+      : (location.hash === '#services' ? 'services' : location.hash === '#contact' ? 'contact' : 'home');
+    const page = pages.find((item) => item.key === pageKey) || pages.find((item) => item.key === 'home');
+    const title = page?.title || settings.seo?.metaTitle || defaultSeo.metaTitle;
+    const description = page?.description || settings.seo?.metaDescription || defaultSeo.metaDescription;
+    const canonical = isWorkPage ? `${SITE_ORIGIN}/work` : (settings.seo?.canonicalUrl || `${SITE_ORIGIN}/`);
+    const robots = settings.seo?.robots || 'index, follow';
+    const ogTitle = settings.seo?.ogTitle || title;
+    const ogDescription = settings.seo?.ogDescription || description;
+    const ogImage = settings.seo?.ogImage || `${SITE_ORIGIN}/motion-franzy-logo.png`;
+    const setMeta = (selector, create, content) => {
+      let element = document.head.querySelector(selector);
+      if (!element) {
+        element = document.createElement('meta');
+        Object.entries(create).forEach(([name, value]) => element.setAttribute(name, value));
+        document.head.appendChild(element);
+      }
+      element.setAttribute('content', content);
+    };
+    document.title = title;
+    setMeta('meta[name="description"]', { name: 'description' }, description);
+    if (settings.seo?.keywords) setMeta('meta[name="keywords"]', { name: 'keywords' }, settings.seo.keywords);
+    setMeta('meta[name="robots"]', { name: 'robots' }, robots);
+    setMeta('meta[property="og:title"]', { property: 'og:title' }, ogTitle);
+    setMeta('meta[property="og:description"]', { property: 'og:description' }, ogDescription);
+    setMeta('meta[property="og:url"]', { property: 'og:url' }, canonical);
+    setMeta('meta[property="og:image"]', { property: 'og:image' }, ogImage);
+    setMeta('meta[name="twitter:title"]', { name: 'twitter:title' }, ogTitle);
+    setMeta('meta[name="twitter:description"]', { name: 'twitter:description' }, ogDescription);
+    setMeta('meta[name="twitter:image"]', { name: 'twitter:image' }, ogImage);
+    let canonicalLink = document.head.querySelector('link[rel="canonical"]');
+    if (!canonicalLink) {
+      canonicalLink = document.createElement('link');
+      canonicalLink.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonicalLink);
+    }
+    canonicalLink.setAttribute('href', canonical);
     const icon = document.querySelector('link[rel="icon"]');
     if (icon) {
-      icon.href = logoUrl || `${window.location.origin}/favicon.svg`;
-      icon.type = logoUrl && !logoUrl.endsWith('.svg') ? '' : 'image/svg+xml';
+      icon.href = BRAND_FAVICON;
+      icon.type = 'image/png';
     }
-  }, [settings.seo, logoUrl]);
+    const sameAs = [settings.footer?.socialLinks?.instagram, settings.footer?.socialLinks?.linkedin]
+      .filter((url) => typeof url === 'string' && url.startsWith('http'));
+    const schema = {
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'Organization',
+          '@id': `${SITE_ORIGIN}/#organization`,
+          name: 'Motion Franzy',
+          url: `${SITE_ORIGIN}/`,
+          logo: `${SITE_ORIGIN}/motion-franzy-logo.png`,
+          email: settings.contactSection?.email || undefined,
+          sameAs,
+        },
+        {
+          '@type': 'WebSite',
+          '@id': `${SITE_ORIGIN}/#website`,
+          url: `${SITE_ORIGIN}/`,
+          name: 'Motion Franzy',
+          publisher: { '@id': `${SITE_ORIGIN}/#organization` },
+        },
+        ...((blocks.services || []).slice(0, 4).map((service) => ({
+          '@type': 'Service',
+          name: service.title,
+          description: service.description,
+          url: `${SITE_ORIGIN}/#services`,
+          provider: { '@id': `${SITE_ORIGIN}/#organization` },
+          areaServed: 'Worldwide',
+        }))),
+      ],
+    };
+    let schemaScript = document.getElementById('motion-franzy-schema');
+    if (!schemaScript) {
+      schemaScript = document.createElement('script');
+      schemaScript.id = 'motion-franzy-schema';
+      schemaScript.type = 'application/ld+json';
+      document.head.appendChild(schemaScript);
+    }
+    schemaScript.textContent = JSON.stringify(schema);
+  }, [settings.seo, settings.contactSection, settings.footer, blocks.services, isWorkPage, location.hash]);
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).has('cmsPreview')) return undefined;
@@ -354,18 +434,23 @@ const serviceInfo = (service) => {
       return;
     }
 
+    if (target.startsWith('/')) {
+      navigate(target);
+      window.scrollTo(0, 0);
+      return;
+    }
+
     if (target.startsWith('#')) {
+      if (location.pathname !== '/') {
+        navigate(`/${target}`);
+        return;
+      }
       const element = document.getElementById(target.replace('#', ''));
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'start' });
       } else {
         window.location.hash = target;
       }
-      return;
-    }
-
-    if (target === '/login' || target === '/admin') {
-      window.location.href = target;
       return;
     }
 
@@ -409,29 +494,37 @@ const serviceInfo = (service) => {
     });
   };
 
-  if (!settingsReady) {
-    return <div style={{ minHeight: '100vh', background: '#0A0A0A' }} />;
-  }
+  useEffect(() => {
+    const hold = setTimeout(() => setHoldDone(true), 700);
+    const cap = setTimeout(() => setSettingsReady(true), 1600);
+    return () => {
+      clearTimeout(hold);
+      clearTimeout(cap);
+    };
+  }, []);
+
+  const showLoader = !(settingsReady && holdDone);
 
   return (
     <>
+      {showLoader && <BrandLoader />}
       <style>{`
         :root { --red: ${theme.red}; --yellow: ${theme.yellow}; --black: ${theme.black}; --paper: ${theme.paper}; --white: ${theme.white}; }
         *{margin:0;padding:0;box-sizing:border-box;} html{scroll-behavior:smooth;} body{background:var(--black);color:var(--white);font-family:'Inter',sans-serif;overflow-x:hidden;} a{color:inherit;text-decoration:none;} img,iframe{max-width:100%;display:block;} .display{font-family:'Archivo Black',sans-serif;text-transform:uppercase;letter-spacing:-0.01em;} .script{font-family:'Caveat',cursive;} .wrap{max-width:1200px;margin:0 auto;padding:0 32px;} @media(max-width:640px){.wrap{padding:0 20px;}}
-        nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,10,0.78);backdrop-filter:blur(10px);border-bottom:1px solid rgba(251,250,247,0.12);} .nav-inner{max-width:1200px;margin:0 auto;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;} .brand{display:flex;align-items:center;gap:10px;} .brand-mark{width:34px;height:34px;flex-shrink:0;} .brand-logo{width:auto;max-width:160px;object-fit:contain;} .brand-word{font-family:'Archivo Black',sans-serif;font-size:14px;letter-spacing:0.02em;} .brand-word span{color:var(--yellow);} .nav-links{display:flex;gap:34px;font-size:13.5px;font-weight:600;} .nav-links a{opacity:0.72;transition:opacity .2s;} .nav-links a:hover{opacity:1;color:var(--yellow);} .nav-cta{background:var(--red);color:var(--white);padding:10px 22px;border-radius:100px;font-size:13px;font-weight:700;transition:transform .2s,background .2s;} .nav-cta:hover{transform:translateY(-2px);background:#A8140D;} @media(max-width:860px){.nav-links{display:none;}}
-        header.hero{position:relative;padding:150px 0 90px;background:radial-gradient(ellipse 70% 55% at 10% 0%,rgba(237,42,34,0.22),transparent 60%),var(--black);overflow:hidden;} .hero-grid{display:grid;grid-template-columns:1.05fr 0.95fr;gap:56px;align-items:center;} @media(max-width:960px){.hero-grid{grid-template-columns:1fr;gap:44px;}} .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--yellow);margin-bottom:20px;} .eyebrow::before{content:"";width:24px;height:2px;background:var(--yellow);display:inline-block;} h1.hero-title{font-size:clamp(38px,6.6vw,72px);line-height:0.98;} h1.hero-title .accent{color:var(--yellow);} .hero-sub{margin-top:24px;max-width:460px;font-size:16.5px;line-height:1.65;color:rgba(251,250,247,0.7);} .hero-actions{display:flex;gap:14px;margin-top:34px;flex-wrap:wrap;} .btn-primary{background:var(--red);color:var(--white);padding:15px 28px;border-radius:100px;font-weight:700;font-size:13.5px;transition:transform .2s,box-shadow .2s,background .2s;display:inline-flex;align-items:center;gap:8px;} .btn-primary:hover{transform:translateY(-3px);box-shadow:0 14px 28px rgba(237,42,34,0.35);} .btn-ghost{border:1.5px solid rgba(251,250,247,0.12);color:var(--white);padding:15px 28px;border-radius:100px;font-weight:700;font-size:13.5px;transition:border-color .2s,background .2s;} .btn-ghost:hover{border-color:var(--yellow);color:var(--yellow);} .hero-visual{position:relative;} .flash-badge{position:absolute;top:-18px;right:6%;z-index:3;background:var(--yellow);color:var(--black);width:96px;height:96px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-family:'Archivo Black',sans-serif;font-size:11px;line-height:1.2;transform:rotate(8deg);box-shadow:0 12px 26px rgba(0,0,0,0.4);} .flash-badge .big{font-size:20px;} .hero-video-card{position:relative;border-radius:22px;overflow:hidden;border:1px solid rgba(251,250,247,0.12);aspect-ratio:9/11;background:#000;box-shadow:0 30px 60px rgba(0,0,0,0.5);} .hero-video-card iframe{position:absolute;inset:0;width:100%;height:100%;border:0;} .hero-video-tag{position:absolute;bottom:16px;left:16px;z-index:3;background:rgba(10,10,10,0.7);backdrop-filter:blur(6px);padding:8px 14px;border-radius:100px;font-size:12px;font-weight:700;border:1px solid rgba(251,250,247,0.12);} .hero-video-tag span{color:var(--red);}
+        nav{position:fixed;top:0;left:0;right:0;z-index:100;background:#0a0a0a;border-bottom:1px solid rgba(251,250,247,0.12);} .nav-inner{max-width:1200px;margin:0 auto;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;} .brand{display:flex;align-items:center;flex:0 0 auto;} .brand-logo{height:118px;width:auto;max-width:none;object-fit:contain;flex-shrink:0;} footer .brand-logo{height:196px;} .nav-links{display:flex;gap:34px;font-size:13.5px;font-weight:600;} .nav-links a{opacity:0.72;transition:opacity .2s;} .nav-links a:hover{opacity:1;color:var(--yellow);} .nav-cta{background:var(--red);color:var(--white);padding:10px 22px;border-radius:100px;font-size:13px;font-weight:700;transition:transform .2s,background .2s;} .nav-cta:hover{transform:translateY(-2px);background:#A8140D;} @media(max-width:860px){.nav-links{display:none;} .brand-logo{height:88px;} footer .brand-logo{height:150px;}}
+        header.hero{position:relative;padding:210px 0 90px;background:radial-gradient(ellipse 70% 55% at 10% 0%,rgba(237,42,34,0.22),transparent 60%),var(--black);overflow:hidden;} .hero-grid{display:grid;grid-template-columns:1.05fr 0.95fr;gap:56px;align-items:center;} @media(max-width:960px){.hero-grid{grid-template-columns:1fr;gap:44px;}} .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--yellow);margin-bottom:20px;} .eyebrow::before{content:"";width:24px;height:2px;background:var(--yellow);display:inline-block;} h1.hero-title{font-size:clamp(38px,6.6vw,72px);line-height:0.98;} h1.hero-title .accent{color:var(--yellow);} .hero-sub{margin-top:24px;max-width:460px;font-size:16.5px;line-height:1.65;color:rgba(251,250,247,0.7);} .hero-actions{display:flex;gap:14px;margin-top:34px;flex-wrap:wrap;} .btn-primary{background:var(--red);color:var(--white);padding:15px 28px;border-radius:100px;font-weight:700;font-size:13.5px;transition:transform .2s,box-shadow .2s,background .2s;display:inline-flex;align-items:center;gap:8px;} .btn-primary:hover{transform:translateY(-3px);box-shadow:0 14px 28px rgba(237,42,34,0.35);} .btn-ghost{border:1.5px solid rgba(251,250,247,0.12);color:var(--white);padding:15px 28px;border-radius:100px;font-weight:700;font-size:13.5px;transition:border-color .2s,background .2s;} .btn-ghost:hover{border-color:var(--yellow);color:var(--yellow);} .hero-visual{position:relative;} .flash-badge{position:absolute;top:-18px;right:6%;z-index:3;background:var(--yellow);color:var(--black);width:96px;height:96px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-family:'Archivo Black',sans-serif;font-size:11px;line-height:1.2;transform:rotate(8deg);box-shadow:0 12px 26px rgba(0,0,0,0.4);} .flash-badge .big{font-size:20px;} .hero-video-card{position:relative;border-radius:22px;overflow:hidden;border:1px solid rgba(251,250,247,0.12);aspect-ratio:9/11;background:#000;box-shadow:0 30px 60px rgba(0,0,0,0.5);} .hero-video-card iframe{position:absolute;inset:0;width:100%;height:100%;border:0;} .hero-video-tag{position:absolute;bottom:16px;left:16px;z-index:3;background:rgba(10,10,10,0.7);backdrop-filter:blur(6px);padding:8px 14px;border-radius:100px;font-size:12px;font-weight:700;border:1px solid rgba(251,250,247,0.12);} .hero-video-tag span{color:var(--red);}
         .marquee{background:var(--black);border-top:1px solid rgba(251,250,247,0.12);border-bottom:1px solid rgba(251,250,247,0.12);padding:22px 0;overflow:hidden;white-space:nowrap;} .marquee-track{display:inline-block;animation:scroll 28s linear infinite;font-family:'Archivo Black',sans-serif;font-size:15px;letter-spacing:0.04em;color:rgba(251,250,247,0.35);} .marquee-track span{margin:0 30px;} .marquee-track b{color:var(--yellow);} @keyframes scroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
         .section{padding:110px 0;} .kicker{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--red);margin-bottom:14px;} .kicker.on-dark{color:var(--yellow);} .kicker::before{content:"";width:20px;height:2px;background:currentColor;display:inline-block;} .section-title{font-size:clamp(28px,4.2vw,46px);line-height:1.06;} .section-title.dark{color:var(--black);} .section-desc{margin-top:16px;font-size:15.5px;line-height:1.7;color:rgba(251,250,247,0.62);} .section-desc.dark{color:rgba(10,10,10,0.6);}
         .tiles{background:var(--black);} .tiles-grid{display:grid;grid-template-columns:0.85fr 1.5fr;gap:36px;align-items:center;} @media(max-width:900px){.tiles-grid{grid-template-columns:1fr;}} .tiles-copy h2{font-size:clamp(28px,4.6vw,42px);line-height:1.05;} .tiles-copy h2 .accent{color:var(--yellow);} .tiles-copy p{margin-top:16px;font-size:15px;line-height:1.65;color:rgba(251,250,247,0.6);max-width:340px;} .tiles-link{display:inline-flex;align-items:center;gap:8px;margin-top:24px;font-weight:700;font-size:14px;color:var(--red);} .tile-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;} @media(max-width:640px){.tile-row{grid-template-columns:1fr;}} .tile{position:relative;border-radius:16px;overflow:hidden;aspect-ratio:3/4;border:1px solid rgba(251,250,247,0.12);background:#000;} .tile iframe{position:absolute;inset:0;width:100%;height:100%;border:0;} .tile-label{position:absolute;left:0;right:0;bottom:0;z-index:3;background:var(--yellow);color:var(--black);padding:12px 14px;display:flex;align-items:center;gap:10px;pointer-events:none;} .tile-label .dot{width:26px;height:26px;border-radius:50%;background:var(--black);color:var(--yellow);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;} .tile-label .txt b{display:block;font-size:12.5px;font-weight:800;} .tile-label .txt span{display:block;font-size:10.5px;opacity:0.75;}
         .services{background:var(--paper);color:var(--black);} .services .section-desc{max-width:440px;} .services-head{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:20px;margin-bottom:52px;} .service-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(10,10,10,0.1);border:1px solid rgba(10,10,10,0.1);} @media(max-width:960px){.service-grid{grid-template-columns:repeat(2,1fr);}} @media(max-width:560px){.service-grid{grid-template-columns:1fr;}} .service-card{background:var(--paper);padding:36px 28px;transition:background .3s ease,color .3s ease;display:flex;flex-direction:column;gap:16px;min-height:230px;} .service-card:hover{background:var(--black);} .service-card:hover h3,.service-card:hover p{color:var(--white);} .service-card:hover .service-icon{background:var(--yellow);} .service-card:hover .learn{color:var(--yellow);} .service-icon{width:44px;height:44px;border-radius:10px;background:var(--red);display:flex;align-items:center;justify-content:center;transition:background .3s ease;} .service-card h3{font-size:17.5px;font-weight:800;transition:color .3s ease;} .service-card p{font-size:13.5px;line-height:1.6;color:rgba(10,10,10,0.6);transition:color .3s ease;} .learn{margin-top:auto;font-size:12.5px;font-weight:700;color:var(--red);display:inline-flex;align-items:center;gap:6px;transition:color .3s ease;background:none;border:0;padding:0;cursor:pointer;text-align:left;font-family:inherit;} .service-modal{position:fixed;inset:0;z-index:200;background:rgba(10,10,10,0.72);display:grid;place-items:center;padding:24px;} .service-modal-card{width:min(640px,100%);max-height:min(86vh,760px);overflow:auto;background:var(--paper);color:var(--black);border-radius:22px;padding:32px 28px;position:relative;} .service-modal-close{position:absolute;top:16px;right:16px;border:0;background:transparent;font-weight:800;cursor:pointer;font-family:inherit;} .service-modal-card h2{font-size:clamp(28px,4vw,42px);line-height:1.05;margin:8px 48px 16px 0;} .service-modal-card p{font-size:16px;line-height:1.65;color:rgba(10,10,10,0.72);} .service-modal-card ul{margin:22px 0 0;padding:0;list-style:none;display:grid;gap:10px;} .service-modal-card li{display:flex;gap:10px;font-weight:650;font-size:14.5px;} .service-modal-card li::before{content:"✓";color:var(--red);font-weight:800;} .service-modal-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px;} .service-modal-primary,.service-modal-secondary{border-radius:100px;padding:13px 22px;font-weight:800;cursor:pointer;font-family:inherit;} .service-modal-primary{background:var(--red);color:var(--white);border:0;} .service-modal-secondary{background:transparent;border:1.5px solid rgba(10,10,10,0.2);}
-        .work{background:var(--black);} .work-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;} @media(max-width:900px){.work-grid{grid-template-columns:repeat(2,1fr);}} @media(max-width:600px){.work-grid{grid-template-columns:1fr;}} .work-card{border-radius:16px;overflow:hidden;border:1px solid rgba(251,250,247,0.12);background:#151515;transition:transform .35s ease,border-color .3s ease,box-shadow .3s ease;} .work-card:hover{transform:translateY(-6px);border-color:var(--yellow);box-shadow:0 20px 40px rgba(255,199,44,0.18);} .video-frame{position:relative;width:100%;aspect-ratio:9/16;background:#000;} .video-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0;} .work-caption{padding:16px 18px 20px;} .work-card .tag{font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--red);margin-bottom:6px;} .work-card h4{font-size:15.5px;font-weight:800;}
-        .process{background:var(--black);} .process-row{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid rgba(251,250,247,0.12);border-bottom:1px solid rgba(251,250,247,0.12);} @media(max-width:900px){.process-row{grid-template-columns:1fr 1fr;}} @media(max-width:600px){.process-row{grid-template-columns:1fr;}} .process-step{padding:32px 24px;border-right:1px solid rgba(251,250,247,0.12);} .process-step:last-child{border-right:none;} @media(max-width:900px){.process-step{border-bottom:1px solid rgba(251,250,247,0.12);}} .process-step .pnum{font-family:'Archivo Black',sans-serif;font-size:30px;color:var(--red);} .process-step h4{margin-top:14px;font-size:16px;font-weight:800;} .process-step p{margin-top:8px;font-size:13px;line-height:1.55;color:rgba(251,250,247,0.55);} .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin-top:1px;background:var(--red);} @media(max-width:600px){.stats-row{grid-template-columns:1fr 1fr;}} .stat{background:var(--red);padding:30px 20px;text-align:center;} .stat .num{font-family:'Archivo Black',sans-serif;font-size:clamp(26px,3.4vw,38px);color:var(--black);} .stat .label{margin-top:6px;font-size:11.5px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(10,10,10,0.72);font-weight:700;}
+        .work{background:var(--black);} .work-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;} @media(max-width:900px){.work-grid{grid-template-columns:repeat(2,1fr);}} @media(max-width:600px){.work-grid{grid-template-columns:1fr;}} .work-card{border-radius:16px;overflow:hidden;border:1px solid rgba(251,250,247,0.12);background:#151515;transition:transform .35s ease,border-color .3s ease,box-shadow .3s ease;} .work-card:hover{transform:translateY(-6px);border-color:var(--yellow);box-shadow:0 20px 40px rgba(255,199,44,0.18);} .video-frame{position:relative;width:100%;aspect-ratio:9/16;background:#000;} .video-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0;} .work-caption{padding:16px 18px 20px;} .work-card .tag{font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--red);margin-bottom:6px;} .work-card h3{font-size:15.5px;font-weight:800;}
+        .process{background:var(--black);} .process-row{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid rgba(251,250,247,0.12);border-bottom:1px solid rgba(251,250,247,0.12);} @media(max-width:900px){.process-row{grid-template-columns:1fr 1fr;}} @media(max-width:600px){.process-row{grid-template-columns:1fr;}} .process-step{padding:32px 24px;border-right:1px solid rgba(251,250,247,0.12);} .process-step:last-child{border-right:none;} @media(max-width:900px){.process-step{border-bottom:1px solid rgba(251,250,247,0.12);}} .process-step .pnum{font-family:'Archivo Black',sans-serif;font-size:30px;color:var(--red);} .process-step h3{margin-top:14px;font-size:16px;font-weight:800;} .process-step p{margin-top:8px;font-size:13px;line-height:1.55;color:rgba(251,250,247,0.55);} .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin-top:1px;background:var(--red);} @media(max-width:600px){.stats-row{grid-template-columns:1fr 1fr;}} .stat{background:var(--red);padding:30px 20px;text-align:center;} .stat .num{font-family:'Archivo Black',sans-serif;font-size:clamp(26px,3.4vw,38px);color:var(--black);} .stat .label{margin-top:6px;font-size:11.5px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(10,10,10,0.72);font-weight:700;}
         .pricing{background:var(--black);} .price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;} @media(max-width:900px){.price-grid{grid-template-columns:1fr;max-width:400px;margin:0 auto;}} .price-card{border:1px solid rgba(251,250,247,0.12);border-radius:20px;padding:36px 30px;display:flex;flex-direction:column;gap:20px;transition:transform .3s ease,border-color .3s ease;} .price-card:hover{transform:translateY(-8px);border-color:var(--yellow);} .price-card.popular{background:var(--red);border-color:var(--red);position:relative;} .price-card.popular .badge{position:absolute;top:-14px;right:28px;background:var(--yellow);color:var(--black);font-size:11px;font-weight:800;padding:6px 14px;border-radius:100px;letter-spacing:0.04em;} .price-plan{font-size:13px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(251,250,247,0.6);} .price-card.popular .price-plan{color:rgba(10,10,10,0.7);} .price-amount{font-family:'Archivo Black',sans-serif;font-size:38px;} .price-amount span{font-family:'Inter',sans-serif;font-size:13px;font-weight:600;opacity:0.6;} .price-list{display:flex;flex-direction:column;gap:10px;font-size:13.5px;} .price-list div{display:flex;align-items:center;gap:8px;color:rgba(251,250,247,0.78);} .price-card.popular .price-list div{color:rgba(10,10,10,0.85);} .price-btn{margin-top:auto;text-align:center;padding:13px;border-radius:100px;font-weight:700;font-size:13.5px;border:1.5px solid rgba(251,250,247,0.12);transition:background .2s,color .2s,border-color .2s;} .price-btn:hover{background:var(--yellow);color:var(--black);border-color:var(--yellow);} .price-card.popular .price-btn{background:var(--black);color:var(--white);border-color:var(--black);} .price-card.popular .price-btn:hover{background:var(--yellow);color:var(--black);}
         .contact{background:var(--black);padding:120px 0;} .contact-wrapper{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:start;} @media(max-width:900px){.contact-wrapper{grid-template-columns:1fr;gap:60px;}} .contact-info{} .contact-info h2{font-size:clamp(28px,4vw,42px);line-height:1.1;margin-bottom:32px;} .info-block{margin-bottom:48px;} .info-label{font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--yellow);margin-bottom:8px;} .info-value{font-size:16px;line-height:1.6;color:rgba(251,250,247,0.8);} .info-value a{color:var(--red);transition:color .2s;} .info-value a:hover{color:var(--yellow);} .contact-form{} .form-group{margin-bottom:24px;} .form-group label{display:block;font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:rgba(251,250,247,0.6);margin-bottom:8px;} .form-group input,.form-group textarea{width:100%;padding:14px;background:rgba(251,250,247,0.05);border:1px solid rgba(251,250,247,0.12);border-radius:8px;color:var(--white);font-family:inherit;font-size:14px;transition:border-color .2s,background .2s;} .form-group input:focus,.form-group textarea:focus{outline:none;border-color:var(--red);background:rgba(251,250,247,0.08);} .form-group textarea{resize:vertical;min-height:140px;} .form-submit{background:var(--red);color:var(--white);padding:16px 32px;border:none;border-radius:100px;font-weight:700;font-size:14px;cursor:pointer;transition:background .2s,transform .2s;width:100%;} .form-submit:hover{background:#A8140D;transform:translateY(-2px);} .form-status{font-size:14px;margin-top:12px;padding:12px;border-radius:6px;text-align:center;} .form-status.success{background:rgba(34,197,94,0.2);color:#22c55e;} .form-status.error{background:rgba(239,68,68,0.2);color:#ef4444;} .cta{background:var(--yellow);color:var(--black);padding:120px 0;text-align:center;} .cta-title{font-size:clamp(30px,5.6vw,64px);line-height:1.02;max-width:760px;margin:0 auto;} .cta-sub{margin-top:18px;font-size:16px;color:rgba(10,10,10,0.7);} .cta-actions{margin-top:36px;display:flex;justify-content:center;gap:14px;flex-wrap:wrap;} .btn-dark{background:var(--black);color:var(--white);padding:16px 30px;border-radius:100px;font-weight:700;font-size:14px;transition:transform .2s;} .btn-dark:hover{transform:translateY(-3px);} .btn-outline-dark{border:1.5px solid rgba(10,10,10,0.4);color:var(--black);padding:16px 30px;border-radius:100px;font-weight:700;font-size:14px;}
         .announce-bar{display:block;background:var(--yellow);color:var(--black);text-align:center;font-size:13px;font-weight:800;padding:10px 18px;} .announce-bar span{margin-left:8px;text-decoration:underline;}
         .proof{background:var(--black);} .proof-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:36px;} @media(max-width:900px){.proof-grid{grid-template-columns:1fr;}} .proof-card{border:1px solid rgba(251,250,247,0.12);border-radius:18px;padding:28px 24px;display:flex;flex-direction:column;gap:18px;min-height:240px;background:linear-gradient(180deg,rgba(255,199,44,0.08),transparent 42%);} .proof-result{align-self:flex-start;background:var(--yellow);color:var(--black);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:800;} .proof-card q{font-size:18px;line-height:1.45;font-weight:600;} .proof-person{color:rgba(251,250,247,0.62);font-size:13px;} .proof-person strong{display:block;color:var(--white);font-size:14px;}
         .offer-banner{display:flex;justify-content:space-between;gap:24px;align-items:center;flex-wrap:wrap;background:var(--yellow);color:var(--black);border-radius:18px;padding:22px 26px;margin-bottom:28px;} .offer-banner .badge{background:var(--black);color:var(--yellow);} .offer-banner h3{font-size:22px;margin-top:8px;} .offer-banner p{max-width:460px;margin-top:6px;color:rgba(10,10,10,0.72);} .offer-banner a{background:var(--black);color:var(--white);border-radius:999px;padding:12px 18px;font-weight:800;font-size:13px;}
-        footer{background:var(--black);padding:56px 0 30px;border-top:1px solid rgba(251,250,247,0.12);} .foot-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:30px;padding-bottom:36px;border-bottom:1px solid rgba(251,250,247,0.12);} .foot-cols{display:flex;gap:64px;flex-wrap:wrap;} .foot-col h5{font-size:11.5px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(251,250,247,0.4);margin-bottom:14px;} .foot-col a{display:block;font-size:13.5px;margin-bottom:10px;color:rgba(251,250,247,0.72);} .foot-col a:hover{color:var(--yellow);} .foot-bottom{display:flex;justify-content:space-between;padding-top:22px;font-size:12px;color:rgba(251,250,247,0.4);flex-wrap:wrap;gap:10px;}
+        footer{background:var(--black);padding:56px 0 30px;border-top:1px solid rgba(251,250,247,0.12);} .foot-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:30px;padding-bottom:36px;border-bottom:1px solid rgba(251,250,247,0.12);} .foot-cols{display:flex;gap:64px;flex-wrap:wrap;} .foot-col .foot-label{font-size:11.5px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(251,250,247,0.4);margin:0 0 14px;} .foot-col a{display:block;font-size:13.5px;margin-bottom:10px;color:rgba(251,250,247,0.72);} .foot-col a:hover{color:var(--yellow);} .foot-bottom{display:flex;justify-content:space-between;padding-top:22px;font-size:12px;color:rgba(251,250,247,0.4);flex-wrap:wrap;gap:10px;}
       `}</style>
 
       <nav>
@@ -451,7 +544,6 @@ const serviceInfo = (service) => {
         <div className="nav-inner">
           <div className="brand">
             {renderBrandMark()}
-            <div className="brand-word">{settings.brand?.logoText || 'MOTION FRANZY'} <span>{settings.brand?.logoTag || '/ AI ADS'}</span></div>
           </div>
           <div className="nav-links">
             {navItems.map((item) => (
@@ -481,6 +573,7 @@ const serviceInfo = (service) => {
         </div>
       </nav>
 
+      {!isWorkPage && <>
       <header className="hero hero-slideshow-background">
         <div className="hero-bg-slides" aria-hidden="true" style={{ '--hero-video-opacity': heroVideoOpacity }}>
           {playableHeroSlides.map((url, index) => {
@@ -495,7 +588,7 @@ const serviceInfo = (service) => {
                 autoPlay={active}
                 muted
                 playsInline
-                preload="auto"
+                preload={active ? 'metadata' : 'none'}
                 controls={false}
                 controlsList="nodownload nofullscreen noremoteplayback"
                 disablePictureInPicture
@@ -565,7 +658,7 @@ const serviceInfo = (service) => {
           <div className="tile-row">
             {(workVideos || []).slice(0, 3).map((item, index) => (
               <div className="tile" key={index}>
-                <iframe src={item.video || item} allow="autoplay" allowFullScreen title={item.title || `reel-${index}`} />
+                <iframe src={item.video || item} loading="lazy" allow="autoplay" allowFullScreen title={item.title || `reel-${index}`} />
                 <div className="tile-label"><div className="dot">{String(index + 1).padStart(2, '0')}</div><div className="txt"><b>{item.title || `Reel ${index + 1}`}</b><span>{item.tag || 'AI Ad'}</span></div></div>
               </div>
             ))}
@@ -604,23 +697,41 @@ const serviceInfo = (service) => {
         </div>
       </section>
 
-      <section className="section work" id="work">
+      </>}
+
+      <section className="section work" id="work" style={isWorkPage ? { paddingTop: 140 } : undefined}>
         <div className="wrap">
-          <div style={{ marginBottom: 52 }}>
-            <div className="kicker on-dark">{blocks.workKicker}</div>
-            <h2 className="section-title display">{blocks.workTitle || 'Real Reels, Real Brands.'}</h2>
+          <div className="work-heading">
+            <div>
+              <div className="kicker on-dark">{blocks.workKicker}</div>
+              {isWorkPage ? (
+                <h1 className="section-title display">{blocks.workTitle || 'Real Reels, Real Brands.'}</h1>
+              ) : (
+                <h2 className="section-title display">{blocks.workTitle || 'Real Reels, Real Brands.'}</h2>
+              )}
+            </div>
+            {isWorkPage && (
+              <a href="/" className="work-more" onClick={(e) => { e.preventDefault(); handleNavigate('/'); }}>←</a>
+            )}
           </div>
-          <div className="work-grid">
-            {(workVideos || []).map((item, index) => (
+          <div className={isWorkPage ? 'work-grid' : 'work-row'}>
+            {(isWorkPage ? workVideos : (workVideos || []).slice(0, 5)).map((item, index) => (
               <div className="work-card" key={index}>
-                <div className="video-frame"><iframe src={item.video || item} allow="autoplay" allowFullScreen title={item.title || `work-${index}`} /></div>
-                <div className="work-caption"><div className="tag">{item.tag || 'AI Ad'}</div><h4>{item.title || `Reel ${index + 1}`}</h4></div>
+                <div className="video-frame"><iframe src={item.video || item} loading="lazy" allow="autoplay" allowFullScreen title={item.title || `work-${index}`} /></div>
+                <div className="work-caption"><div className="tag">{item.tag || 'AI Ad'}</div><h3>{item.title || `Reel ${index + 1}`}</h3></div>
               </div>
             ))}
+            {!isWorkPage && (
+              <a href="/work" className="work-more-card" onClick={(e) => { e.preventDefault(); handleNavigate('/work'); }}>
+                <span className="work-more-arrow" aria-hidden="true">→</span>
+                <span>More</span>
+              </a>
+            )}
           </div>
         </div>
       </section>
 
+      {!isWorkPage && <>
       <section className="process" id="process">
         <div className="wrap section" style={{ paddingBottom: 56 }}>
           <div>
@@ -629,7 +740,7 @@ const serviceInfo = (service) => {
           </div>
         </div>
         <div className="process-row">
-          {(blocks.processSteps || []).map((step, index) => <div className="process-step" key={index}><div className="pnum display">{step.number}</div><h4>{step.title}</h4><p>{step.description}</p></div>)}
+          {(blocks.processSteps || []).map((step, index) => <div className="process-step" key={index}><div className="pnum display">{step.number}</div><h3>{step.title}</h3><p>{step.description}</p></div>)}
         </div>
         <div className="stats-row">
           {(blocks.stats || []).map((stat, index) => <div className="stat" key={index}><div className="num display">{stat.value}</div><div className="label">{stat.label}</div></div>)}
@@ -750,9 +861,15 @@ const serviceInfo = (service) => {
 
               <div className="info-block">
                 <div className="info-label">Follow Us</div>
-                <div className="info-value" style={{ display: 'flex', gap: '16px' }}>
-                  <a href={footer.socialLinks?.instagram || 'https://instagram.com'} target="_blank" rel="noreferrer" style={{ fontSize: '14px', fontWeight: 700 }}>Instagram →</a>
-                  <a href={footer.socialLinks?.linkedin || 'https://linkedin.com'} target="_blank" rel="noreferrer" style={{ fontSize: '14px', fontWeight: 700 }}>LinkedIn →</a>
+                <div className="social-links">
+                  <a className="social-link" href={footer.socialLinks?.instagram || 'https://instagram.com'} target="_blank" rel="noreferrer" aria-label="Instagram">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10a4 4 0 014 4v10a4 4 0 01-4 4H7a4 4 0 01-4-4V7a4 4 0 014-4zm5 4.2A4.8 4.8 0 1016.8 12 4.8 4.8 0 0012 7.2zm0 1.8a3 3 0 11-3 3 3 3 0 013-3zm5.4-2.5a1.1 1.1 0 11-1.1 1.1 1.1 1.1 0 011.1-1.1z"/></svg>
+                    Instagram
+                  </a>
+                  <a className="social-link" href={footer.socialLinks?.linkedin || 'https://linkedin.com'} target="_blank" rel="noreferrer" aria-label="LinkedIn">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.7 3.2A2.2 2.2 0 112.5 5.4a2.2 2.2 0 012.2-2.2zM3 8.4h3.4V21H3zM9.2 8.4h3.3v1.7h.1c.5-1 1.6-2 3.3-2 3.5 0 4.2 2.3 4.2 5.3V21H16.7v-6.2c0-1.5 0-3.4-2.1-3.4s-2.4 1.6-2.4 3.3V21H9.2z"/></svg>
+                    LinkedIn
+                  </a>
                 </div>
               </div>
             </div>
@@ -796,6 +913,7 @@ const serviceInfo = (service) => {
           </div>
         </div>
       </section>}
+      </>}
 
       {openService && (
         <div className="service-modal" onClick={() => setOpenService(null)}>
@@ -835,11 +953,10 @@ const serviceInfo = (service) => {
           <div className="foot-top">
             <div className="brand">
               {renderBrandMark()}
-              <div className="brand-word">{settings.brand?.logoText || 'MOTION FRANZY'} <span>{settings.brand?.logoTag || '/ AI ADS'}</span></div>
             </div>
             <div className="foot-cols">
-              <div className="foot-col"><h5>Studio</h5><a href="#services" onClick={(e) => { e.preventDefault(); handleNavigate('#services'); }}>Services</a><a href="#work" onClick={(e) => { e.preventDefault(); handleNavigate('#work'); }}>Work</a><a href="#process" onClick={(e) => { e.preventDefault(); handleNavigate('#process'); }}>Process</a><a href="#pricing" onClick={(e) => { e.preventDefault(); handleNavigate('#pricing'); }}>Pricing</a></div>
-              <div className="foot-col"><h5>Contact</h5><a href={footer.socialLinks?.instagram || 'https://instagram.com'} target="_blank" rel="noreferrer">Instagram</a><a href={footer.socialLinks?.linkedin || 'https://linkedin.com'} target="_blank" rel="noreferrer">LinkedIn</a><a href={`mailto:${contact.email}`}>Email</a></div>
+              <div className="foot-col"><p className="foot-label">Studio</p><a href="#services" onClick={(e) => { e.preventDefault(); handleNavigate('#services'); }}>Services</a><a href="/work" onClick={(e) => { e.preventDefault(); handleNavigate('/work'); }}>Portfolio</a><a href="#process" onClick={(e) => { e.preventDefault(); handleNavigate('#process'); }}>Process</a><a href="#pricing" onClick={(e) => { e.preventDefault(); handleNavigate('#pricing'); }}>Pricing</a><a href="#contact" onClick={(e) => { e.preventDefault(); handleNavigate('#contact'); }}>Contact</a></div>
+              <div className="foot-col"><p className="foot-label">Contact</p><a href={footer.socialLinks?.instagram || 'https://instagram.com'} target="_blank" rel="noreferrer">Instagram</a><a href={footer.socialLinks?.linkedin || 'https://linkedin.com'} target="_blank" rel="noreferrer">LinkedIn</a><a href={`mailto:${contact.email}`}>Email</a></div>
             </div>
           </div>
           <div className="foot-bottom">
