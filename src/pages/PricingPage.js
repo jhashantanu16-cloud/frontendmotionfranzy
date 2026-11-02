@@ -18,7 +18,7 @@ const defaultSettings = {
     introTitle: 'AI-POWERED VIDEO ADVERTISING.',
     introSubtitle: 'High-converting video ads made fast. No crew, no studio, no compromise on quality. Just results.',
     servicesTitle: 'Everything You Need To Win.',
-    servicesKicker: 'What We Do', servicesDescription: "We combine AI production with ad strategy to build creative that's engineered to perform, not just look good.", serviceLinkText: 'Learn More', introLinkText: 'View Full Portfolio',
+    servicesKicker: 'What We Do', servicesDescription: 'We combine AI production with ad strategy to build AI product commercials, AI Instagram reel ads, and AI video ads for ecommerce brands.', serviceLinkText: 'Learn More', introLinkText: 'View Full Portfolio',
     services: [
       { title: 'AI Video Generation', description: 'Professional video ads generated in minutes. From product shots to full campaigns, all AI-powered.' },
       { title: 'Scroll-Stop Hooks', description: 'The first 1.5 seconds are everything. We create thumb-stopping openings that convert.' },

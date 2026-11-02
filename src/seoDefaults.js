@@ -5,8 +5,8 @@ export const defaultSeoPages = [
     key: 'home',
     label: 'Homepage',
     path: '/',
-    title: 'Motion Franzy — AI Ads Agency',
-    description: 'AI video ads, product commercials and social creatives for brands that want to stop the scroll.',
+    title: 'AI Video Ads Agency | Motion Franzy',
+    description: 'Motion Franzy is an AI video ads agency making product commercials, Instagram reel ads, and video ads for ecommerce brands.',
   },
   {
     key: 'services',
@@ -39,13 +39,13 @@ export const defaultSeoPages = [
 ];
 
 export const defaultSeo = {
-  metaTitle: 'Motion Franzy — AI Ads Agency',
-  metaDescription: 'AI video ads, product commercials and social creatives for brands that want to stop the scroll.',
-  keywords: 'AI ads, AI video ads, product commercials, Motion Franzy',
+  metaTitle: 'AI Video Ads Agency | Motion Franzy',
+  metaDescription: 'Motion Franzy is an AI video ads agency making product commercials, Instagram reel ads, and video ads for ecommerce brands.',
+  keywords: 'AI video ads agency, AI product commercials, AI Instagram reel ads, AI video ads for ecommerce brands, Motion Franzy',
   canonicalUrl: 'https://motionfranzy.com/',
   robots: 'index, follow',
-  ogTitle: 'Motion Franzy — AI Ads Agency',
-  ogDescription: 'AI video ads and product commercials made to stop the scroll.',
+  ogTitle: 'AI Video Ads Agency | Motion Franzy',
+  ogDescription: 'AI product commercials, Instagram reel ads, and video ads for ecommerce brands.',
   ogImage: 'https://motionfranzy.com/motion-franzy-logo.png',
   pages: defaultSeoPages,
 };
