@@ -65,6 +65,8 @@ const defaultSettings = {
     processKicker: 'How We Work', processTitle: 'Our Proven Process.', processSteps: [], stats: [],
   },
   contactSection: { enabled: true, title: "Let's Talk.", email: 'shantanujha16@gmail.com', phone: '', address: '', hours: '', formTitle: 'Send us a message' },
+  customPages: [],
+  homeSections: [],
   maintenance: { enabled: false, message: 'We are updating the site. Please check back soon.' },
 };
 
@@ -84,9 +86,28 @@ function ContentManager({ user }) {
         headers: { Authorization: `Bearer ${token}` },
       });
 
+      const reservedSlugs = new Set(['work', 'login', 'admin', 'api', 'uploads']);
+      const customPages = [...(response.data.customPages || [])];
+      (response.data.header?.navItems || []).forEach((item) => {
+        const slug = String(item.href || '').replace(/^\/+|\/+$/g, '').split('/')[0];
+        if (!slug || slug.includes('.') || reservedSlugs.has(slug) || !String(item.href || '').startsWith('/')) return;
+        if (!customPages.some((page) => page.slug === slug)) {
+          customPages.push({
+            slug,
+            menuLabel: item.label || slug,
+            title: item.label || slug,
+            description: '',
+            showInNav: true,
+            items: [],
+          });
+        }
+      });
+
       setSettings({
         ...defaultSettings,
         ...response.data,
+        customPages,
+        homeSections: response.data.homeSections || [],
         header: { ...defaultSettings.header, ...(response.data.header || {}) },
         heroSection: { ...defaultSettings.heroSection, ...(response.data.heroSection || {}) },
         footer: { ...defaultSettings.footer, ...(response.data.footer || {}) },
@@ -237,6 +258,88 @@ function ContentManager({ user }) {
   const logoPreviewUrl = BRAND_LOGO;
   const heroVideoSlides = (settings.heroSection?.backgroundSlides || []).map((url) => String(url).trim()).filter(Boolean);
 
+  const reservedSlugs = new Set(['work', 'login', 'admin', 'api', 'uploads']);
+  const slugify = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-/, '').slice(0, 40);
+  const finishedSlug = (value) => slugify(value).replace(/-+$/, '');
+
+  const applyCustomPages = (pages) => {
+    const previousHrefs = new Set((settings.customPages || []).map((page) => `/${finishedSlug(page.slug)}`).filter((href) => href !== '/'));
+    const navItems = (settings.header?.navItems || []).filter((item) => !previousHrefs.has(item.href));
+    const used = new Set();
+    pages.forEach((page) => {
+      const slug = finishedSlug(page.slug);
+      if (!page.showInNav || !slug || reservedSlugs.has(slug) || used.has(slug)) return;
+      used.add(slug);
+      navItems.push({ label: page.menuLabel || page.title || slug, href: `/${slug}` });
+    });
+    setSettings({
+      ...settings,
+      customPages: pages,
+      header: { ...(settings.header || {}), navItems },
+    });
+  };
+
+  const reservedAnchors = new Set(['work', 'services', 'process', 'pricing', 'contact', 'results', 'hero']);
+
+  const applyHomeSections = (sections) => {
+    const previousHrefs = new Set((settings.homeSections || []).map((section) => `#${finishedSlug(section.anchor)}`).filter((href) => href !== '#'));
+    const navItems = (settings.header?.navItems || []).filter((item) => !previousHrefs.has(item.href));
+    const used = new Set();
+    sections.forEach((section) => {
+      const anchor = finishedSlug(section.anchor);
+      if (!section.showInNav || !anchor || reservedAnchors.has(anchor) || used.has(anchor)) return;
+      used.add(anchor);
+      navItems.push({ label: section.menuLabel || section.title || anchor, href: `#${anchor}` });
+    });
+    setSettings({
+      ...settings,
+      homeSections: sections,
+      header: { ...(settings.header || {}), navItems },
+    });
+  };
+
+  const addHomeSection = () => {
+    const sections = [...(settings.homeSections || [])];
+    let anchor = 'section';
+    let count = 2;
+    while (sections.some((section) => section.anchor === anchor) || reservedAnchors.has(anchor)) {
+      anchor = `section-${count}`;
+      count += 1;
+    }
+    applyHomeSections([...sections, { anchor, menuLabel: 'Section', kicker: '', title: 'New section', body: '', showInNav: true, items: [] }]);
+  };
+
+  const updateHomeSection = (index, patch) => {
+    const sections = [...(settings.homeSections || [])];
+    const next = { ...sections[index], ...patch };
+    if (Object.prototype.hasOwnProperty.call(patch, 'anchor')) {
+      next.anchor = slugify(patch.anchor);
+    }
+    sections[index] = next;
+    applyHomeSections(sections);
+  };
+
+  const addCustomPage = () => {
+    const pages = [...(settings.customPages || [])];
+    let slug = 'gallery';
+    let count = 2;
+    while (pages.some((page) => page.slug === slug) || reservedSlugs.has(slug)) {
+      slug = `gallery-${count}`;
+      count += 1;
+    }
+    applyCustomPages([...pages, { slug, menuLabel: 'Gallery', title: 'Gallery', description: '', showInNav: true, items: [] }]);
+  };
+
+  const updateCustomPage = (index, patch) => {
+    const pages = [...(settings.customPages || [])];
+    const next = { ...pages[index], ...patch };
+    if (Object.prototype.hasOwnProperty.call(patch, 'slug')) {
+      next.slug = slugify(patch.slug);
+    }
+    pages[index] = next;
+    applyCustomPages(pages);
+  };
+
   if (loading) return <BrandLoader />;
 
   return (
@@ -251,6 +354,7 @@ function ContentManager({ user }) {
 
         <div className="content-tabs">
           <button className={`tab-btn ${activeTab === 'header' ? 'active' : ''}`} onClick={() => setActiveTab('header')}>Header</button>
+          <button className={`tab-btn ${activeTab === 'pages' ? 'active' : ''}`} onClick={() => setActiveTab('pages')}>Pages</button>
           <button className={`tab-btn ${activeTab === 'hero' ? 'active' : ''}`} onClick={() => setActiveTab('hero')}>Hero</button>
           <button className={`tab-btn ${activeTab === 'process' ? 'active' : ''}`} onClick={() => setActiveTab('process')}>Process</button>
           <button className={`tab-btn ${activeTab === 'pricing' ? 'active' : ''}`} onClick={() => setActiveTab('pricing')}>Pricing</button>
@@ -315,6 +419,58 @@ function ContentManager({ user }) {
                 <small>Click or drag the slider, then click Save Changes to publish.</small>
               </div>
               <div className="form-group"><label>Marquee Items (one per line)</label><textarea rows="6" value={(settings.contentBlocks?.marqueeItems || []).join('\n')} onChange={(e) => updateSection('contentBlocks', 'marqueeItems', e.target.value.split('\n'))} /></div>
+              <h2>Homepage sections</h2>
+              <p>Each section appears under the hero. Turn on navigation to add a menu link that scrolls to it.</p>
+              {(settings.homeSections || []).map((section, index) => (
+                <div className="feature-item feature-card" key={`section-${index}`}>
+                  <div className="form-group">
+                    <label>Menu label</label>
+                    <input type="text" value={section.menuLabel || ''} onChange={(e) => updateHomeSection(index, { menuLabel: e.target.value })} />
+                  </div>
+                  <div className="form-group">
+                    <label>Section address</label>
+                    <input type="text" value={section.anchor || ''} onChange={(e) => updateHomeSection(index, { anchor: e.target.value })} placeholder="section" />
+                    <small>Menu link scrolls to #{section.anchor || 'section'}. work, services, process, pricing, and contact are already used.</small>
+                  </div>
+                  <div className="form-group">
+                    <label>Kicker</label>
+                    <input type="text" value={section.kicker || ''} onChange={(e) => updateHomeSection(index, { kicker: e.target.value })} />
+                  </div>
+                  <div className="form-group">
+                    <label>Title</label>
+                    <input type="text" value={section.title || ''} onChange={(e) => updateHomeSection(index, { title: e.target.value })} />
+                  </div>
+                  <div className="form-group">
+                    <label>Text</label>
+                    <textarea rows="3" value={section.body || ''} onChange={(e) => updateHomeSection(index, { body: e.target.value })} />
+                  </div>
+                  <label className="toggle-group">
+                    <input type="checkbox" checked={section.showInNav !== false} onChange={(e) => updateHomeSection(index, { showInNav: e.target.checked })} />
+                    Show in navigation
+                  </label>
+                  <div className="form-group">
+                    <label>Cards</label>
+                    {(section.items || []).map((item, itemIndex) => (
+                      <div className="feature-item" key={itemIndex}>
+                        <input type="text" value={item.title || ''} placeholder="Card title" onChange={(e) => {
+                          const items = [...(section.items || [])];
+                          items[itemIndex] = { ...items[itemIndex], title: e.target.value };
+                          updateHomeSection(index, { items });
+                        }} />
+                        <textarea rows="2" value={item.text || ''} placeholder="Card text" onChange={(e) => {
+                          const items = [...(section.items || [])];
+                          items[itemIndex] = { ...items[itemIndex], text: e.target.value };
+                          updateHomeSection(index, { items });
+                        }} />
+                        <button type="button" className="remove-btn" onClick={() => updateHomeSection(index, { items: (section.items || []).filter((_, current) => current !== itemIndex) })}>Remove</button>
+                      </div>
+                    ))}
+                    <button type="button" className="btn-secondary add-btn" onClick={() => updateHomeSection(index, { items: [...(section.items || []), { title: '', text: '' }] })}>Add card</button>
+                  </div>
+                  <button type="button" className="remove-btn" onClick={() => applyHomeSections((settings.homeSections || []).filter((_, sectionIndex) => sectionIndex !== index))}>Remove section</button>
+                </div>
+              ))}
+              <button type="button" className="btn-secondary add-btn" onClick={addHomeSection}>Add section</button>
             </div>
           )}
 
@@ -380,8 +536,72 @@ function ContentManager({ user }) {
                   </div>
                 ))}
                 <button type="button" className="btn-secondary add-btn" onClick={() => updateSection('header', 'navItems', [...(settings.header?.navItems || []), { label: 'New item', href: '#contact' }])}>Add navigation item</button>
-                <small>Use #work, #services, #process, #pricing, or #contact to stay on the homepage. Use /work for the full reels page.</small>
+                <small>Use #services, #process, #pricing, or #contact for homepage sections, and /work for the reels page. New pages added in the Pages tab appear here automatically.</small>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'pages' && (
+            <div className="section">
+              <h2>Pages</h2>
+              <p>Each page gets its own address and can be added to the menu. Use the gallery list for images or videos on that page.</p>
+              {(settings.customPages || []).map((page, index) => (
+                <div className="feature-item feature-card" key={`page-${index}`}>
+                  <div className="form-group">
+                    <label>Menu label</label>
+                    <input type="text" value={page.menuLabel || ''} onChange={(e) => updateCustomPage(index, { menuLabel: e.target.value })} />
+                  </div>
+                  <div className="form-group">
+                    <label>Page address</label>
+                    <input type="text" value={page.slug || ''} onChange={(e) => updateCustomPage(index, { slug: e.target.value })} placeholder="gallery" />
+                    <small>Opens at /{page.slug || 'gallery'}. Reserved addresses: work, login, admin.</small>
+                  </div>
+                  <div className="form-group">
+                    <label>Page title</label>
+                    <input type="text" value={page.title || ''} onChange={(e) => updateCustomPage(index, { title: e.target.value })} />
+                  </div>
+                  <div className="form-group">
+                    <label>Description</label>
+                    <textarea rows="3" value={page.description || ''} onChange={(e) => updateCustomPage(index, { description: e.target.value })} />
+                  </div>
+                  <label className="toggle-group">
+                    <input type="checkbox" checked={page.showInNav !== false} onChange={(e) => updateCustomPage(index, { showInNav: e.target.checked })} />
+                    Show in navigation
+                  </label>
+                  <div className="form-group">
+                    <label>Gallery</label>
+                    {(page.items || []).map((item, itemIndex) => (
+                      <div className="feature-item" key={itemIndex}>
+                        <input type="text" value={item.title || ''} placeholder="Title" onChange={(e) => {
+                          const items = [...(page.items || [])];
+                          items[itemIndex] = { ...items[itemIndex], title: e.target.value };
+                          updateCustomPage(index, { items });
+                        }} />
+                        <input type="text" value={item.media || ''} placeholder="Image or video URL" onChange={(e) => {
+                          const items = [...(page.items || [])];
+                          items[itemIndex] = { ...items[itemIndex], media: e.target.value };
+                          updateCustomPage(index, { items });
+                        }} />
+                        <input type="text" value={item.tag || ''} placeholder="Tag" onChange={(e) => {
+                          const items = [...(page.items || [])];
+                          items[itemIndex] = { ...items[itemIndex], tag: e.target.value };
+                          updateCustomPage(index, { items });
+                        }} />
+                        <textarea rows="3" value={item.text || ''} placeholder="Write about this photo" onChange={(e) => {
+                          const items = [...(page.items || [])];
+                          items[itemIndex] = { ...items[itemIndex], text: e.target.value };
+                          updateCustomPage(index, { items });
+                        }} />
+                        <button type="button" className="remove-btn" onClick={() => updateCustomPage(index, { items: (page.items || []).filter((_, current) => current !== itemIndex) })}>Remove</button>
+                      </div>
+                    ))}
+                    <button type="button" className="btn-secondary add-btn" onClick={() => updateCustomPage(index, { items: [...(page.items || []), { title: 'New item', media: '', tag: 'Gallery', text: '' }] })}>Add gallery item</button>
+                    <small>Image URLs should end in .jpg, .png, or .webp. Video URLs can be an .mp4 file or a Drive preview link.</small>
+                  </div>
+                  <button type="button" className="remove-btn" onClick={() => applyCustomPages((settings.customPages || []).filter((_, pageIndex) => pageIndex !== index))}>Remove page</button>
+                </div>
+              ))}
+              <button type="button" className="btn-secondary add-btn" onClick={addCustomPage}>Add page</button>
             </div>
           )}
 

@@ -55,6 +55,7 @@ function App() {
       <Routes>
         <Route path="/" element={<PricingPage />} />
         <Route path="/work" element={<PricingPage />} />
+        <Route path="/:slug" element={<PricingPage />} />
         <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
         <Route
           path="/admin"
