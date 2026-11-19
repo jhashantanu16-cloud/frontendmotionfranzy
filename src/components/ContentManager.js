@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import axios from 'axios/dist/browser/axios.cjs';
 import { API_BASE_URL } from '../config';
 import BrandLoader, { BRAND_LOGO } from './BrandLoader';
 import { defaultSeo } from '../seoDefaults';

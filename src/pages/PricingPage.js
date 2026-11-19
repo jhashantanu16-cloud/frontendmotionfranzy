@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axios from 'axios/dist/browser/axios.cjs';
 import { API_BASE_URL } from '../config';
 import BrandLoader, { BRAND_LOGO, BRAND_FAVICON } from '../components/BrandLoader';
 import { defaultSeo, defaultSeoPages, SITE_ORIGIN } from '../seoDefaults';
