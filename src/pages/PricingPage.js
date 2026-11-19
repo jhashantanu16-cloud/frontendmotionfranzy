@@ -198,6 +198,11 @@ const serviceInfo = (service) => {
   };
 };
   const workVideos = blocks.workVideos || defaultSettings.contentBlocks.workVideos;
+  const workTitle = blocks.workTitle || 'Real Reels, Real Brands.';
+  const workSplit = workTitle.indexOf(',');
+  const workTitleLead = workSplit >= 0 ? workTitle.slice(0, workSplit + 1) : workTitle;
+  const workTitleMark = workSplit >= 0 ? workTitle.slice(workSplit + 1).trim() : '';
+  const workTicker = (workVideos || []).map((item, index) => item.title || `Reel ${index + 1}`).filter(Boolean);
   const pricingPlans = blocks.pricingPlans || defaultSettings.contentBlocks.pricingPlans;
   const heroTitle = hero.title || '';
   const heroAccent = hero.accent || '';
@@ -527,6 +532,20 @@ const serviceInfo = (service) => {
   }, []);
 
   useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+    const nodes = document.querySelectorAll('.section, .process, .proof, .conversion-cta, .page-story, .tiles');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('motion-in');
+        observer.unobserve(entry.target);
+      });
+    }, { threshold: 0.18, rootMargin: '0px 0px -6% 0px' });
+    nodes.forEach((node) => observer.observe(node));
+    return () => observer.disconnect();
+  }, [isWorkPage, isCustomPage, settingsReady]);
+
+  useEffect(() => {
     if (!settingsReady || location.pathname === '/' || location.pathname === '/work' || customPage) return;
     navigate('/', { replace: true });
   }, [settingsReady, location.pathname, customPage, navigate]);
@@ -540,7 +559,7 @@ const serviceInfo = (service) => {
         :root { --red: ${theme.red}; --yellow: ${theme.yellow}; --black: ${theme.black}; --paper: ${theme.paper}; --white: ${theme.white}; }
         *{margin:0;padding:0;box-sizing:border-box;} html{scroll-behavior:smooth;} body{background:var(--black);color:var(--white);font-family:'Inter',sans-serif;overflow-x:hidden;} a{color:inherit;text-decoration:none;} img,iframe{max-width:100%;display:block;} .display{font-family:'Archivo Black',sans-serif;text-transform:uppercase;letter-spacing:-0.01em;} .script{font-family:'Caveat',cursive;} .wrap{max-width:1200px;margin:0 auto;padding:0 32px;} @media(max-width:640px){.wrap{padding:0 20px;}}
         nav{position:fixed;top:0;left:0;right:0;z-index:100;background:#0a0a0a;border-bottom:1px solid rgba(251,250,247,0.12);} .nav-inner{max-width:1200px;margin:0 auto;padding:10px 32px;display:flex;align-items:center;gap:20px;} .brand{display:flex;align-items:center;flex:0 0 auto;} .brand-logo{height:84px;width:auto;max-width:none;object-fit:contain;flex-shrink:0;} footer .brand-logo{height:160px;} .nav-links{display:flex;flex:1 1 auto;justify-content:flex-end;flex-wrap:wrap;gap:8px 22px;font-size:13.5px;font-weight:600;min-width:0;} .nav-links a{opacity:0.72;transition:opacity .2s;white-space:nowrap;} .nav-links a:hover{opacity:1;color:var(--yellow);} .nav-cta{flex:0 0 auto;white-space:nowrap;background:var(--red);color:var(--white);padding:10px 22px;border-radius:100px;font-size:13px;font-weight:700;transition:transform .2s,background .2s;} .nav-cta:hover{transform:translateY(-2px);background:#A8140D;} @media(max-width:860px){.nav-inner{flex-wrap:wrap;padding:10px 20px;row-gap:10px;} .brand-logo{height:72px;} footer .brand-logo{height:132px;} .nav-cta{margin-left:auto;} .nav-links{order:3;flex:1 1 100%;justify-content:flex-start;gap:10px 16px;} header.hero{padding:168px 0 72px;}}
-        header.hero{position:relative;padding:176px 0 90px;background:radial-gradient(ellipse 70% 55% at 10% 0%,rgba(237,42,34,0.22),transparent 60%),var(--black);overflow:hidden;} .hero-grid{display:grid;grid-template-columns:1.05fr 0.95fr;gap:56px;align-items:center;} @media(max-width:960px){.hero-grid{grid-template-columns:1fr;gap:44px;}} .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--yellow);margin-bottom:20px;} .eyebrow::before{content:"";width:24px;height:2px;background:var(--yellow);display:inline-block;} h1.hero-title{font-size:clamp(38px,6.6vw,72px);line-height:0.98;} h1.hero-title .accent{color:var(--yellow);} .hero-sub{margin-top:24px;max-width:460px;font-size:16.5px;line-height:1.65;color:rgba(251,250,247,0.7);} .hero-actions{display:flex;gap:14px;margin-top:34px;flex-wrap:wrap;} .btn-primary{background:var(--red);color:var(--white);padding:15px 28px;border-radius:100px;font-weight:700;font-size:13.5px;transition:transform .2s,box-shadow .2s,background .2s;display:inline-flex;align-items:center;gap:8px;} .btn-primary:hover{transform:translateY(-3px);box-shadow:0 14px 28px rgba(237,42,34,0.35);} .btn-ghost{border:1.5px solid rgba(251,250,247,0.12);color:var(--white);padding:15px 28px;border-radius:100px;font-weight:700;font-size:13.5px;transition:border-color .2s,background .2s;} .btn-ghost:hover{border-color:var(--yellow);color:var(--yellow);} .hero-visual{position:relative;} .flash-badge{position:absolute;top:-18px;right:6%;z-index:3;background:var(--yellow);color:var(--black);width:96px;height:96px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-family:'Archivo Black',sans-serif;font-size:11px;line-height:1.2;transform:rotate(8deg);box-shadow:0 12px 26px rgba(0,0,0,0.4);} .flash-badge .big{font-size:20px;} .hero-video-card{position:relative;border-radius:22px;overflow:hidden;border:1px solid rgba(251,250,247,0.12);aspect-ratio:9/11;background:#000;box-shadow:0 30px 60px rgba(0,0,0,0.5);} .hero-video-card iframe{position:absolute;inset:0;width:100%;height:100%;border:0;} .hero-video-tag{position:absolute;bottom:16px;left:16px;z-index:3;background:rgba(10,10,10,0.7);backdrop-filter:blur(6px);padding:8px 14px;border-radius:100px;font-size:12px;font-weight:700;border:1px solid rgba(251,250,247,0.12);} .hero-video-tag span{color:var(--red);}
+        header.hero{position:relative;padding:176px 0 90px;background:radial-gradient(ellipse 70% 55% at 10% 0%,rgba(237,42,34,0.22),transparent 60%),var(--black);overflow:hidden;} .hero-grid{display:grid;grid-template-columns:1.05fr 0.95fr;gap:56px;align-items:center;} @media(max-width:960px){.hero-grid{grid-template-columns:1fr;gap:44px;}} .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--yellow);margin-bottom:20px;} .eyebrow::before{content:"";width:24px;height:2px;background:var(--yellow);display:inline-block;} h1.hero-title{font-size:clamp(38px,6.6vw,72px);line-height:0.98;} h1.hero-title .accent{background:linear-gradient(100deg,#ffc72c 15%,#fff8dc 40%,#ffc72c 65%);background-size:220% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:mf-sheen 3.2s linear infinite;} .hero-sub{margin-top:24px;max-width:460px;font-size:16.5px;line-height:1.65;color:rgba(251,250,247,0.7);} .hero-actions{display:flex;gap:14px;margin-top:34px;flex-wrap:wrap;} .btn-primary{background:var(--red);color:var(--white);padding:15px 28px;border-radius:100px;font-weight:700;font-size:13.5px;transition:transform .2s,box-shadow .2s,background .2s;display:inline-flex;align-items:center;gap:8px;} .btn-primary:hover{transform:translateY(-3px);box-shadow:0 14px 28px rgba(237,42,34,0.35);} .btn-ghost{border:1.5px solid rgba(251,250,247,0.12);color:var(--white);padding:15px 28px;border-radius:100px;font-weight:700;font-size:13.5px;transition:border-color .2s,background .2s;} .btn-ghost:hover{border-color:var(--yellow);color:var(--yellow);} .hero-visual{position:relative;} .flash-badge{position:absolute;top:-18px;right:6%;z-index:3;background:var(--yellow);color:var(--black);width:96px;height:96px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-family:'Archivo Black',sans-serif;font-size:11px;line-height:1.2;transform:rotate(8deg);box-shadow:0 12px 26px rgba(0,0,0,0.4);} .flash-badge .big{font-size:20px;} .hero-video-card{position:relative;border-radius:22px;overflow:hidden;border:1px solid rgba(251,250,247,0.12);aspect-ratio:9/11;background:#000;box-shadow:0 30px 60px rgba(0,0,0,0.5);} .hero-video-card iframe{position:absolute;inset:0;width:100%;height:100%;border:0;} .hero-video-tag{position:absolute;bottom:16px;left:16px;z-index:3;background:rgba(10,10,10,0.7);backdrop-filter:blur(6px);padding:8px 14px;border-radius:100px;font-size:12px;font-weight:700;border:1px solid rgba(251,250,247,0.12);} .hero-video-tag span{color:var(--red);}
         .marquee{background:var(--black);border-top:1px solid rgba(251,250,247,0.12);border-bottom:1px solid rgba(251,250,247,0.12);padding:22px 0;overflow:hidden;white-space:nowrap;} .marquee-track{display:inline-block;animation:scroll 28s linear infinite;font-family:'Archivo Black',sans-serif;font-size:15px;letter-spacing:0.04em;color:rgba(251,250,247,0.35);} .marquee-track span{margin:0 30px;} .marquee-track b{color:var(--yellow);} @keyframes scroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
         .section{padding:110px 0;} .kicker{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--red);margin-bottom:14px;} .kicker.on-dark{color:var(--yellow);} .kicker::before{content:"";width:20px;height:2px;background:currentColor;display:inline-block;} .section-title{font-size:clamp(28px,4.2vw,46px);line-height:1.06;} .section-title.dark{color:var(--black);} .section-desc{margin-top:16px;font-size:15.5px;line-height:1.7;color:rgba(251,250,247,0.62);} .section-desc.dark{color:rgba(10,10,10,0.6);}
         .tiles{background:var(--black);} .tiles-grid{display:grid;grid-template-columns:0.85fr 1.5fr;gap:36px;align-items:center;} @media(max-width:900px){.tiles-grid{grid-template-columns:1fr;}} .tiles-copy h2{font-size:clamp(28px,4.6vw,42px);line-height:1.05;} .tiles-copy h2 .accent{color:var(--yellow);} .tiles-copy p{margin-top:16px;font-size:15px;line-height:1.65;color:rgba(251,250,247,0.6);max-width:340px;} .tiles-link{display:inline-flex;align-items:center;gap:8px;margin-top:24px;font-weight:700;font-size:14px;color:var(--red);} .tile-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;} @media(max-width:640px){.tile-row{grid-template-columns:1fr;}} .tile{position:relative;border-radius:16px;overflow:hidden;aspect-ratio:3/4;border:1px solid rgba(251,250,247,0.12);background:#000;} .tile iframe{position:absolute;inset:0;width:100%;height:100%;border:0;} .tile-label{position:absolute;left:0;right:0;bottom:0;z-index:3;background:var(--yellow);color:var(--black);padding:12px 14px;display:flex;align-items:center;gap:10px;pointer-events:none;} .tile-label .dot{width:26px;height:26px;border-radius:50%;background:var(--black);color:var(--yellow);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;} .tile-label .txt b{display:block;font-size:12.5px;font-weight:800;} .tile-label .txt span{display:block;font-size:10.5px;opacity:0.75;}
@@ -554,6 +573,7 @@ const serviceInfo = (service) => {
         .offer-banner{display:flex;justify-content:space-between;gap:24px;align-items:center;flex-wrap:wrap;background:var(--yellow);color:var(--black);border-radius:18px;padding:22px 26px;margin-bottom:28px;} .offer-banner .badge{background:var(--black);color:var(--yellow);} .offer-banner h3{font-size:22px;margin-top:8px;} .offer-banner p{max-width:460px;margin-top:6px;color:rgba(10,10,10,0.72);} .offer-banner a{background:var(--black);color:var(--white);border-radius:999px;padding:12px 18px;font-weight:800;font-size:13px;}
         footer{background:var(--black);padding:56px 0 30px;border-top:1px solid rgba(251,250,247,0.12);} .foot-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:30px;padding-bottom:36px;border-bottom:1px solid rgba(251,250,247,0.12);} .foot-cols{display:flex;gap:64px;flex-wrap:wrap;} .foot-col .foot-label{font-size:11.5px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(251,250,247,0.4);margin:0 0 14px;} .foot-col a{display:block;font-size:13.5px;margin-bottom:10px;color:rgba(251,250,247,0.72);} .foot-col a:hover{color:var(--yellow);} .foot-bottom{display:flex;justify-content:space-between;padding-top:22px;font-size:12px;color:rgba(251,250,247,0.4);flex-wrap:wrap;gap:10px;}
       `}</style>
+      <style>{`@keyframes mf-sheen{from{background-position:120% 0;}to{background-position:-120% 0;}}@media (prefers-reduced-motion:reduce){h1.hero-title .accent{animation:none;color:var(--yellow);background:none;-webkit-text-fill-color:unset;}}`}</style>
 
       <nav>
         {announcement.enabled && announcement.text && (
@@ -780,25 +800,35 @@ const serviceInfo = (service) => {
         </section>
       )}
 
-      {!isCustomPage && <section className="section work" id="work" style={isWorkPage ? { paddingTop: 140 } : undefined}>
+      {!isCustomPage && <section className={`section work${isWorkPage ? '' : ' work-home'}`} id="work" style={isWorkPage ? { paddingTop: 140 } : undefined}>
         <div className="wrap">
           <div className="work-heading">
             <div>
               <div className="kicker on-dark">{blocks.workKicker}</div>
               {isWorkPage ? (
-                <h1 className="section-title display">{blocks.workTitle || 'Real Reels, Real Brands.'}</h1>
+                <h1 className="section-title display work-title">{workTitleLead}{workTitleMark && <span className="work-title-mark">{workTitleMark}</span>}</h1>
               ) : (
-                <h2 className="section-title display">{blocks.workTitle || 'Real Reels, Real Brands.'}</h2>
+                <h2 className="section-title display work-title">{workTitleLead}{workTitleMark && <span className="work-title-mark">{workTitleMark}</span>}</h2>
+              )}
+              {!isWorkPage && workTicker.length > 0 && (
+                <div className="work-ticker" aria-hidden="true">
+                  <div className="work-ticker-track">
+                    {[...workTicker, ...workTicker].map((label, index) => <span key={`${label}-${index}`}>{label}</span>)}
+                  </div>
+                </div>
               )}
             </div>
             {isWorkPage && (
               <a href="/" className="work-more" onClick={(e) => { e.preventDefault(); handleNavigate('/'); }}>←</a>
             )}
           </div>
-          <div className={isWorkPage ? 'work-grid' : 'work-row'}>
+          <div className={isWorkPage ? 'work-grid' : 'work-row work-stage'}>
             {(isWorkPage ? workVideos : (workVideos || []).slice(0, 5)).map((item, index) => (
               <div className="work-card" key={index}>
-                <div className="video-frame"><iframe src={item.video || item} loading="lazy" allow="autoplay" allowFullScreen title={item.title || `work-${index}`} /></div>
+                <div className="video-frame">
+                  <span className="work-index">{String(index + 1).padStart(2, '0')}</span>
+                  <iframe src={item.video || item} loading="lazy" allow="autoplay" allowFullScreen title={item.title || `work-${index}`} />
+                </div>
                 <div className="work-caption"><div className="tag">{item.tag || 'AI Ad'}</div><h3>{item.title || `Reel ${index + 1}`}</h3></div>
               </div>
             ))}
